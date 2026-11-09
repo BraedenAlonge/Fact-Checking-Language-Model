@@ -1,0 +1,123 @@
+BACKGROUND CHECKERS - GOLD EXAMPLE SET V1
+=========================================
+
+Files
+-----
+gold_examples_v1.jsonl contains 25 chat-style examples:
+
+- 7 claim_extraction
+- 5 search_planning
+- 6 evidence_selection
+- 7 claim_evaluation
+
+Each physical line is one complete JSON object. The assistant message content is
+itself a serialized JSON object so the model learns to return machine-readable
+output.
+
+
+Important Status
+----------------
+This is a schema-review and behavior-review set. Evidence packets are synthetic
+but internally consistent, and all URLs use the reserved .example top-level
+domain. This avoids presenting invented citations as real sources.
+
+Do not treat this version as a factual web-evidence corpus. After the team
+approves the schemas, task boundaries, and label decisions, evidence-selection
+and claim-evaluation records should be rebuilt or expanded using archived text
+from real sources with retrieval dates and provenance.
+
+
+Common Record Format
+--------------------
+{
+  "example_id": "ce_001",
+  "task": "claim_extraction",
+  "difficulty": "basic|intermediate|adversarial",
+  "tags": ["descriptive", "tags"],
+  "messages": [
+    {"role": "system", "content": "task instruction"},
+    {"role": "user", "content": "task input"},
+    {"role": "assistant", "content": "serialized JSON output"}
+  ]
+}
+
+
+Output Schemas
+--------------
+
+1. claim_extraction
+
+{
+  "claims": [
+    {
+      "claim_id": "c1",
+      "claim_text": "A complete, independently checkable statement.",
+      "context": "Minimal context required to preserve meaning."
+    }
+  ]
+}
+
+If no checkable factual claims are present, return {"claims":[]}.
+
+
+2. search_planning
+
+{
+  "claim_id": "c1",
+  "tool": "web_search",
+  "arguments": {
+    "query": "A concise query preserving important names, dates, and places."
+  }
+}
+
+
+3. evidence_selection
+
+{
+  "claim_id": "c1",
+  "evidence": [
+    {
+      "source_id": "s1",
+      "title": "Source title copied from the input",
+      "url": "Source URL copied from the input",
+      "excerpt": "Relevant text copied exactly from the supplied result",
+      "stance": "supports|contradicts|context",
+      "quality": "high|medium|low"
+    }
+  ],
+  "needs_refinement": false,
+  "refinement_reason": null
+}
+
+The selector must not invent a source, URL, title, or excerpt. Duplicate or
+syndicated pages should not be counted as independent evidence. Set
+needs_refinement to true when search results cannot adequately address the
+claim, and explain why in refinement_reason.
+
+
+4. claim_evaluation
+
+{
+  "claim_id": "c1",
+  "label": "Supported|Contradicted|Insufficient Evidence",
+  "explanation": "A concise explanation limited to the supplied evidence.",
+  "source_ids": ["s1", "s2"]
+}
+
+Supported requires evidence for the complete claim. Contradicted requires
+reliable evidence that directly conflicts with the claim. Missing, weak,
+partial, irrelevant, or materially conflicting evidence produces Insufficient
+Evidence.
+
+
+Review Checklist
+----------------
+- Confirm the task schemas match the planned runtime interfaces.
+- Confirm claim splitting is neither too coarse nor too granular.
+- Confirm opinions, commands, and predictions are excluded.
+- Confirm search queries retain necessary temporal and geographic context.
+- Confirm evidence excerpts are copied rather than rewritten.
+- Confirm duplicates are not treated as independent sources.
+- Confirm each evaluation label follows only the supplied evidence.
+- Confirm absence of support is not mislabeled as contradiction.
+- Approve or revise the schemas before generating examples at scale.

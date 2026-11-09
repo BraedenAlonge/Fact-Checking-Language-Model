@@ -1,0 +1,168 @@
+BACKGROUND CHECKERS - FINE-TUNING DATASET PLAN
+================================================
+
+Purpose
+-------
+The project's main custom asset will be its fine-tuning and evaluation data.
+Search APIs, LoRA tooling, and basic pipeline orchestration are comparatively
+standard, but the examples must teach the model consistent task boundaries and
+decision rules.
+
+
+Recommended Training Approach
+-----------------------------
+Begin with one multi-task JSONL dataset containing four task types:
+
+1. claim_extraction
+2. search_planning
+3. evidence_selection
+4. claim_evaluation
+
+A multi-task adapter is the recommended starting point for the semester project.
+Separate adapters can be explored later if evaluation shows that the tasks
+interfere with one another or one task performs substantially worse than the
+others.
+
+Use one complete JSON object per line. A portable chat-style record should look
+like this:
+
+{"task":"claim_extraction","messages":[{"role":"system","content":"Extract independently checkable factual claims. Exclude opinions, predictions, commands, and conversational filler. Return valid JSON only."},{"role":"user","content":"The Eiffel Tower opened in 1889. It is the most beautiful landmark in Europe, and everyone should visit it."},{"role":"assistant","content":"{\"claims\":[{\"claim_id\":\"c1\",\"claim_text\":\"The Eiffel Tower opened in 1889.\",\"context\":\"The passage discusses the Eiffel Tower.\"}]}"}]}
+
+This format can be adapted to Hugging Face/TRL or another fine-tuning system
+once the team selects its base model and training library.
+
+
+Recommended Dataset Size
+------------------------
+
+Task                  Training Examples     Evaluation Examples
+--------------------  --------------------  -------------------
+Claim extraction      300-500               75-100
+Search planning       200-300               50-75
+Evidence selection    300-500               75-100
+Claim evaluation      400-600               100-150
+
+The claim evaluator should receive the most examples because distinguishing
+"Contradicted" from "Insufficient Evidence" is central to the project.
+
+These counts are targets, not requirements. A smaller, carefully reviewed
+dataset is preferable to a larger dataset containing inconsistent labels.
+
+
+Cases the Dataset Must Cover
+----------------------------
+
+- Passages containing no factual claims
+- Mixed fact and opinion
+- Several facts packed into one sentence
+- Claims that depend on a date, location, or other context
+- Ambiguous pronouns and references
+- Claims that are only partly supported
+- Conflicting evidence
+- Relevant but inconclusive evidence
+- Multiple web pages repeating the same original source
+- Unreliable or low-authority sources
+- Search failures and empty results
+- Malformed tool calls or tool results
+- Claims that are outdated rather than universally false
+- Claims that are too vague to verify
+- Evidence that supports only part of a compound claim
+
+
+Important Labeling Rules
+------------------------
+
+1. Supported
+   The retrieved evidence directly supports the complete claim in its relevant
+   context. Evidence that supports only part of a compound claim is not enough.
+
+2. Contradicted
+   Reliable evidence directly conflicts with the claim. A lack of supporting
+   evidence does not by itself make a claim contradicted.
+
+3. Insufficient Evidence
+   Use this when evidence is missing, weak, ambiguous, conflicting, irrelevant,
+   or unable to address the complete claim.
+
+The labels represent agreement with the retrieved evidence or online consensus,
+not guaranteed objective truth. Results shown to users should preserve this
+limitation.
+
+
+Data Quality Recommendations
+----------------------------
+
+- Define a precise JSON schema for every task before generating examples.
+- Keep field names, output structure, and label spelling consistent.
+- Include negative and boundary examples, not only easy successful cases.
+- Preserve enough context to prevent claim extraction from changing meaning.
+- Track whether sources are genuinely independent instead of merely counting
+  different URLs that repeat the same report.
+- Prefer authoritative and primary sources where appropriate.
+- Human-review the initial examples before generating them at scale.
+- Validate every JSONL line automatically for syntax and schema compliance.
+- Check for duplicate and near-duplicate examples.
+- Record how each example was produced and reviewed.
+- Avoid allowing examples from the evaluation set to enter training data.
+
+
+Evaluation Set
+--------------
+Maintain a separate, human-reviewed evaluation set that is never used during
+training. The evaluation set should contain both ordinary and adversarial cases.
+Without a held-out set, the team cannot reliably determine whether fine-tuning
+improved the model or whether it merely memorized familiar patterns.
+
+Evaluation should measure each component separately before evaluating the full
+pipeline. Possible measurements include:
+
+- Claim extraction precision, recall, and F1
+- Valid JSON/schema compliance rate
+- Search-query adequacy or human relevance rating
+- Evidence relevance precision
+- Citation/source metadata accuracy
+- Classification accuracy and per-label F1
+- Confusion between Contradicted and Insufficient Evidence
+- End-to-end claim verification accuracy
+
+
+Recommended First Milestone
+---------------------------
+Create a 25-example, human-reviewed gold set covering all four task types. The
+set should include straightforward examples, negative examples, and difficult
+boundary cases. Review the examples as a team and approve the schemas and label
+rules before scaling up.
+
+Suggested distribution for the first 25 examples:
+
+- 7 claim extraction examples
+- 5 search planning examples
+- 6 evidence selection examples
+- 7 claim evaluation examples
+
+After the gold set is approved:
+
+1. Implement automatic JSON/schema validation.
+2. Expand examples using the approved patterns.
+3. Human-review a sample from every generated batch.
+4. Deduplicate and check label balance.
+5. Freeze the held-out evaluation set.
+6. Train the baseline model and LoRA adapter.
+7. Compare both models on exactly the same evaluation data.
+
+
+Remaining Non-Data Work
+-----------------------
+The project is data-centered, but several components will still require explicit
+engineering rules rather than being completely plug-and-play:
+
+- Determining whether sources are independent
+- Extracting usable page content from search results
+- Handling inaccessible, dynamic, or low-quality web pages
+- Ranking sources by authority and relevance
+- Retrying or refining weak searches
+- Enforcing JSON schemas and recovering from malformed model output
+- Defining evaluation procedures and error-analysis categories
+
+Good training data and clear schemas will make these components easier to
+control, test, and improve.
