@@ -1,0 +1,690 @@
+BACKGROUND CHECKERS - USEFUL PUBLIC DATASETS
+================================================
+
+Purpose
+-------
+This note lists public datasets worth using for the four fine-tuning tasks in
+DATASET_PLAN.txt:
+
+1. claim_extraction
+2. search_planning
+3. evidence_selection
+4. claim_evaluation
+
+No public dataset already matches the project's chat-style JSONL schema. These
+sets are source material. Examples still have to be converted, checked against
+the label rules, and reviewed before they enter training.
+
+The gold file in Preliminary_Data is a schema review set. Its evidence packets
+are synthetic and its URLs use the reserved .example domain. Evidence-selection
+and claim-evaluation records that will actually be trained on should be rebuilt
+from real archived text, with a URL, title, and retrieval date.
+
+The semester targets in DATASET_PLAN.txt are a few hundred training examples
+per task, plus a smaller held-out set. Sample from these sources. Do not train
+on an entire large dataset.
+
+
+How to use a public dataset
+---------------------------
+1. Keep the original example id, dataset name, and split. That is what makes
+   it possible to prove the evaluation set never leaked into training.
+2. Rewrite each example into the task schema in GOLD_SET_SCHEMA.txt. One JSON
+   object per line. The assistant message is itself a JSON string.
+3. Map labels with the table below. Do not copy a dataset's label names into
+   the training file.
+4. Copy evidence excerpts from the source. Do not let a model paraphrase them
+   and then treat the paraphrase as the evidence.
+5. Human-review the first batches, then a sample of every later batch. The
+   important error is labeling missing evidence as Contradicted.
+6. Freeze the held-out evaluation set before training. Factcheck-Bench should
+   stay out of training entirely. It is small and already matches the pipeline.
+
+Label mapping
+-------------
+Project label            Use when
+-----------------------  -------------------------------------------------
+Supported                The supplied evidence supports the whole claim.
+Contradicted             Reliable supplied evidence directly conflicts
+                         with the claim.
+Insufficient Evidence    Evidence is missing, weak, partial, irrelevant,
+                         or in material conflict.
+
+Source label                         Project label
+-----------------------------------  ---------------------------------
+FEVER / VitaminC / SciFact SUPPORTS  Supported
+  or Supports
+FEVER / VitaminC REFUTES,            Contradicted
+  SciFact CONTRADICT or Refutes
+NOT ENOUGH INFO, NoInfo,             Insufficient Evidence
+  Not Enough Evidence
+AVeriTeC Conflicting Evidence /      Insufficient Evidence
+  Cherrypicking
+WiCE partially_supported             Insufficient Evidence for the full
+                                     claim. A subclaim that is fully
+                                     supported can be its own Supported
+                                     example.
+FActScore Not-supported              Insufficient Evidence, unless the
+                                     Wikipedia text directly conflicts.
+                                     Absence of support is not contradiction.
+RAGTruth evident conflict            Contradicted, relative to the supplied
+                                     retrieved text only.
+RAGTruth baseless information        Insufficient Evidence
+
+
+Priority
+--------
+Start here. These four cover LLM-written text, open-web evidence, and the
+three-way verdict.
+
+Dataset            Best for                         Size
+-----------------  -------------------------------  ---------------------------
+Factcheck-Bench    Held-out evaluation of the       94 responses
+                   whole pipeline
+FELM               LLM passages and segment-level   847 responses,
+                   verdicts                         4,427 segments
+AVeriTeC           Search questions, web evidence,  4,568 claims
+                   and verdicts                     (2024 test file: 2,215)
+FActScore          Splitting a long LLM passage     183 people x 3 models,
+                   into atomic claims               about 26-41 facts each
+
+Then sample these to fill out evidence selection and claim evaluation:
+
+Dataset            Best for                         Size
+-----------------  -------------------------------  ---------------------------
+FEVER              Three-way labels with sentence   185,445 claims
+                   evidence
+VitaminC           Same claim, contrasting          488,904 pairs
+                   evidence
+WiCE               Partial support against cited    1,967 claims,
+                   web pages                        5,377 subclaims
+RAGTruth           LLM text judged against the      17,790 responses
+                   pages it was given
+LLM-AggreFact      Binary support against a         about 30,000 rows
+                   document, pooled from 11 sets    per split
+SciFact            Scientific claims, only if       1,409 claims
+                   that scope stays in
+
+Use a thin extra slice for the boundary cases named in DATASET_PLAN.txt:
+
+Dataset            Best for                         Size
+-----------------  -------------------------------  ---------------------------
+ClaimBuster        Fact versus opinion             23,533 sentences
+ClaimDecomp        Compound claims to search        1,200 claims,
+                   questions                        6,555 subquestions
+FreshQA            Outdated and fast-changing       600 questions
+                   facts
+FEVEROUS           Search-query traces over         87,026 claims
+                   Wikipedia
+WildHallucinations Niche entities and empty         7,917 entities,
+                   retrieval                        118,785 generations
+
+
+1. Factcheck-Bench
+------------------
+What it is
+  ChatGPT answers, decomposed by hand into sentences and atomic claims, with
+  evidence and a stance for each check-worthy claim. Sources are in-house
+  questions, closed QA, and open QA, including public reports of ChatGPT
+  hallucinations.
+
+Size
+  94 responses
+  311 sentences, of which 277 are check-worthy
+  678 atomic claims, of which 661 are check-worthy
+  16 opinion claims and 1 non-claim
+  3,305 claim-evidence-stance triplets (five evidence pieces per check-worthy
+  claim)
+  61 responses contain a factual error, 31 are factually correct, and 2 have
+  no check-worthy claim
+
+Use it for
+  Held-out evaluation of claim extraction, evidence stance, and verdicts.
+  Also a pattern for how fine-grained the gold claims should be.
+
+How to use it
+  Do not train on it. Score the pipeline on its check-worthy claims. Its
+  opinion and non-claim annotations are a small but direct test of whether
+  extraction skips opinions.
+
+Where
+  https://github.com/yuxiaw/Factcheck-GPT
+  Paper: https://arxiv.org/abs/2311.09000
+
+License
+  Check the repository before redistributing annotations.
+
+
+2. FELM
+------
+What it is
+  ChatGPT responses to 847 prompts, split into text segments. Annotators
+  marked each segment factual or not, with an error type, a short reason, and
+  reference links.
+
+Size
+  847 responses and 4,427 segments
+  3,642 factual segments and 785 non-factual segments
+
+  Segments by domain:
+    World knowledge            532
+    Science and technology     683
+    Writing and recommendation 1,588
+    Reasoning                  1,025
+    Math                       599
+
+Use it for
+  claim_extraction and claim_evaluation on real model prose. Reference links
+  are a start for evidence, but the linked pages still need to be saved.
+
+How to use it
+  Keep world knowledge and science/technology. Drop math and reasoning; those
+  segments are not checked against web pages in the way this project checks
+  claims. Writing and recommendation mixes facts with advice, so it is useful
+  for fact-versus-opinion extraction and a poor source of verdicts.
+
+Where
+  https://github.com/hkust-nlp/felm
+  https://huggingface.co/datasets/hkust-nlp/felm
+
+License
+  Dataset: CC BY-NC-SA 4.0. Non-commercial, and share-alike if redistributed.
+  The code repository is MIT. Course use is fine. A public data release has
+  to keep the dataset terms.
+
+
+3. AVeriTeC
+----------
+What it is
+  Real claims from 50 fact-checking organizations. Annotators wrote the
+  questions they needed to search, answered them from pages available before
+  the claim date, and recorded the URL plus an archive link. A second
+  annotator checked that the question-answer pairs were enough for the
+  verdict. Each example also has a claim date, speaker, location, and a
+  textual justification.
+
+Size
+  Original release: 4,568 claims
+    Train  3,068
+    Dev      500
+    Test   1,000
+  About 2.6 questions per claim.
+  The 2024 shared-task test file has 2,215 claims. The first 1,000 match the
+  original test; the rest were added later. Keep the original test, or the
+  whole 2024 test file, out of training.
+
+  Original label mix, train / dev / test, in percent:
+    Supported                          27.6 / 24.4 / 25.5
+    Refuted                            56.8 / 61.0 / 62.0
+    Conflicting evidence/cherrypicking  6.4 /  7.6 /  6.3
+    Not enough evidence                 9.2 /  7.0 /  6.2
+
+Use it for
+  All four tasks, especially search_planning and evidence_selection. This is
+  the closest public match to the full loop: a claim, search questions, web
+  evidence, and a verdict.
+
+How to use it
+  Turn each fact-checking question into a web_search tool call. Keep the
+  claim date and location in the query when they change the meaning.
+  Map Conflicting Evidence/Cherrypicking to Insufficient Evidence.
+  The set is heavy on Refuted. When sampling, balance toward Supported and
+  Insufficient Evidence so the adapter does not learn that "refuted" is the
+  default.
+  Save the archived page text. A URL alone is not an evidence excerpt.
+
+Where
+  https://github.com/MichSchli/AVeriTeC
+  2024 test file: https://huggingface.co/chenxwh/AVeriTeC
+
+License
+  CC BY-NC 4.0. Non-commercial. Fine for the course. Do not ship it in a
+  commercial product.
+
+
+4. FActScore human annotations
+------------------------------
+What it is
+  Biographies generated by InstructGPT, ChatGPT, and PerplexityAI for 183
+  people. Annotators split each biography into atomic facts and labeled each
+  fact Supported, Not-supported, or Irrelevant against the English Wikipedia
+  dump of 2023-04-01.
+
+Size
+  183 people, three model biographies each.
+  About 26 to 41 atomic facts per biography.
+  A separate unlabeled prompt list has 500 people. Automatic scores also
+  exist for 6,500 generations from 13 models. Use the human annotations as
+  gold. Treat the automatic scores as unreviewed.
+
+Use it for
+  claim_extraction from a long passage, including several facts in one
+  sentence. Irrelevant facts are a negative class.
+
+How to use it
+  The passage is the biography. The assistant output is the list of atomic
+  facts, excluding irrelevant ones.
+  Not-supported means the Wikipedia page did not support the fact. Do not
+  convert that into Contradicted unless the page text directly conflicts.
+  Evidence is an encyclopedia page, not a live web search.
+
+Where
+  https://github.com/shmsw25/FActScore
+  The human annotations are linked from the repository README.
+
+License
+  The code is MIT. Confirm the annotation license in the release notes
+  before redistributing the biographies or labels.
+
+
+5. FEVER
+--------
+What it is
+  Claims written by altering Wikipedia sentences, then verified against
+  Wikipedia without showing the annotator the sentence they came from.
+  Supported and Refuted claims include the evidence sentences. FEVER 2.0 is
+  a smaller adversarial set written to fool existing checkers.
+
+Size
+  185,445 claims in v1.
+  Common split: 145,449 train, 19,998 labeled dev, 19,998 test.
+  Labels: SUPPORTS, REFUTES, NOT ENOUGH INFO.
+  FEVER 2.0: 1,174 adversarial claims, balanced across the three labels.
+
+Use it for
+  claim_evaluation, and evidence_selection when the "retrieved pages" are
+  Wikipedia sentences. Large enough to balance Supported, Contradicted, and
+  Insufficient Evidence after the real-web sets are sampled.
+
+How to use it
+  Sample a few hundred, balanced across the three labels. Include FEVER 2.0
+  in the hard slice of the evaluation set rather than in the main training
+  pool.
+  The claims are short and artificial. They do not teach claim extraction
+  from LLM prose, and they do not teach open-web search.
+
+Where
+  https://fever.ai/dataset/fever.html
+  https://huggingface.co/datasets/fever/fever
+
+License
+  Wikipedia terms, or CC BY-SA 3.0 where a Wikipedia license is unavailable.
+  Share-alike applies if a derived training file is published.
+
+
+6. VitaminC
+-----------
+What it is
+  Claims written against Wikipedia revisions. The same claim is paired with
+  the text before and after a factual edit, so one evidence snippet can
+  support the claim while the contrasting snippet refutes it or is not
+  enough. Synthetic revisions were added so the contrast is not limited to
+  facts that happen to change often.
+
+Size
+  488,904 claim-evidence rows on Hugging Face.
+  The paper describes more than 450,000 pairs drawn from real revisions plus
+  synthetic ones.
+  Labels: SUPPORTS, REFUTES, NOT ENOUGH INFO.
+
+Use it for
+  claim_evaluation. This is the cleanest way to teach that the label follows
+  the evidence in front of the model. Real revisions also supply the
+  "outdated rather than universally false" case.
+
+How to use it
+  Sample contrastive groups: keep both evidence sides of a claim together in
+  the same split, so the model cannot memorize the claim text as a label.
+  Record which Wikipedia revision the evidence came from.
+
+Where
+  https://github.com/TalSchuster/VitaminC
+  https://huggingface.co/datasets/tals/vitaminc
+
+License
+  CC BY-SA 3.0.
+
+
+7. WiCE
+-------
+What it is
+  Sentences from Wikipedia, checked against the web pages they cite. Claims
+  are split into subclaims. Labels are supported, partially_supported, and
+  not_supported, with the supporting sentences marked.
+
+Size
+  1,967 claims: 1,260 train, 349 dev, 358 test.
+  5,377 subclaims: 3,470 train, 949 dev, 958 test.
+  About 3 subclaims per claim.
+  On the dev set, claim-level labels are about 33% supported, 55% partially
+  supported, and 12% not supported.
+
+Use it for
+  evidence_selection and the partial-support rule. A claim supported in only
+  some of its parts is Insufficient Evidence for the whole claim. The
+  subclaims are also claim_extraction examples.
+
+How to use it
+  Prefer the claim-level file when training the evaluator, and the subclaim
+  file when training extraction. Evidence here is cited web text, which is
+  closer to this project than FEVER's Wikipedia-only sentences.
+
+Where
+  https://github.com/ryokamoi/wice
+
+License
+  Annotations are ODC-BY. Attribute the source if the derived data is
+  released.
+
+
+8. RAGTruth
+-----------
+What it is
+  Retrieved source text plus naturally generated RAG responses from several
+  models. Annotators marked hallucination spans and distinguished two types:
+  evident conflict with the source, and baseless information that the source
+  does not support.
+
+Size
+  2,965 source instances and 17,790 responses (six model responses each).
+  7,664 responses contain a hallucination, across 14,289 spans.
+
+  By task:
+    Question answering          989 instances,  5,934 responses
+    Data-to-text writing      1,033 instances,  6,198 responses
+    CNN/Daily Mail summary     628 instances,  3,768 responses
+    Recent-news summary        315 instances,  1,890 responses
+
+Use it for
+  evidence_selection and claim_evaluation where the passage is model-written
+  and the evidence is the retrieved context. Evident conflict maps to
+  Contradicted. Baseless information maps to Insufficient Evidence.
+
+How to use it
+  Prefer question answering and the news summarization slices. Data-to-text
+  is a different task (verbalizing structured records) and is a weak match.
+  The judgment is against the supplied documents, not against the open web.
+  A response can be faithful to a bad retrieved page. Do not present these
+  labels as world-truth labels.
+
+Where
+  https://github.com/ParticleMedia/RAGTruth
+
+License
+  MIT.
+
+
+9. LLM-AggreFact
+----------------
+What it is
+  One combined benchmark from the MiniCheck paper. Each row is a document,
+  a claim, and a binary label: 1 if the document supports the claim, 0
+  otherwise. The claims are mostly model-generated. Sources are AggreFact
+  CNN, AggreFact XSum, TofuEval MediaSum, TofuEval MeetingBank, WiCE,
+  Reveal, ClaimVerify, FactCheck-GPT, ExpertQA, LFQA, and RAGTruth.
+
+Size
+  30,420 dev rows and 29,320 test rows on Hugging Face.
+
+Use it for
+  evidence_selection, as "does this document support this claim?" It cannot
+  teach the three-way verdict by itself, because unsupported covers both
+  contradiction and missing evidence.
+
+How to use it
+  Sample from WiCE, RAGTruth, ExpertQA, and FactCheck-GPT inside this pool
+  if those slices are easier to load here than from the original releases.
+  Do not also sample the same original ids from the source datasets, or the
+  same example will appear twice. Keep its test split out of training.
+
+Where
+  https://huggingface.co/datasets/lytang/LLM-AggreFact
+  Paper: MiniCheck, EMNLP 2024, https://arxiv.org/abs/2404.10774
+
+License
+  The pool inherits the licenses of its 11 sources. Check each source before
+  redistributing a sampled file.
+
+
+10. SciFact
+-----------
+What it is
+  Expert-written scientific claims, checked against a corpus of paper
+  abstracts. Supporting and refuting abstracts include rationale sentences.
+
+Size
+  1,409 claims against 5,183 abstracts.
+  Paper splits: 809 train, 300 dev, 300 test.
+  Labels overall: 556 Supports, 516 NoInfo, 337 Refutes.
+  The original test labels were not public; the dev set is the usable
+  labeled evaluation split.
+  The Hugging Face loader reports a different row split (1,261 / 450 / 300).
+  Use the official JSONL and the paper counts when those disagree.
+
+Use it for
+  claim_evaluation and evidence rationales, only if scientific claims stay
+  in scope. The proposal treats a dense new paper as out of scope. SciFact
+  claims are short and were written to be checked against a known abstract,
+  which is a narrower scientific task than checking an arbitrary paper.
+
+How to use it
+  Skip it if the team bounds the project to general web and news claims.
+  If it stays, treat NoInfo as Insufficient Evidence and keep abstracts as
+  the evidence text.
+
+Where
+  https://github.com/allenai/scifact
+  https://huggingface.co/datasets/allenai/scifact
+
+License
+  CC BY-NC 2.0.
+
+
+11. ClaimBuster
+---------------
+What it is
+  Sentences from U.S. general-election presidential debates, 1960-2016, with
+  human labels for whether a sentence is a factual claim worth checking.
+
+Size
+  23,533 sentences in three classes:
+    Non-factual sentence
+    Unimportant factual sentence
+    Check-worthy factual sentence
+
+Use it for
+  claim_extraction negatives: opinions, beliefs, questions, and other
+  non-claims. This is the fact-versus-opinion case in the proposal.
+
+How to use it
+  Non-factual sentences are negatives and should produce {"claims":[]}, or
+  be dropped when they sit inside a longer passage.
+  Both factual classes are claims for this project. Check-worthiness here
+  means "a journalist would check it," which is a narrower decision than
+  "this is a checkable fact." Do not train the extractor to drop ordinary
+  facts just because ClaimBuster called them unimportant.
+  Debate speech is not LLM prose. Use these to lock the decision rule, and
+  prefer FELM and Factcheck-Bench for the wording of model output.
+
+Where
+  Paper: https://doi.org/10.1609/icwsm.v14i1.7346
+  Data has been released with the ClaimBuster project; confirm the current
+  download page and license before copying it into the repo.
+
+
+12. ClaimDecomp
+---------------
+What it is
+  Complex PolitiFact claims. Annotators wrote yes/no subquestions that the
+  fact-checker's justification actually answers. Some questions restate the
+  claim. Others ask for implied context.
+
+Size
+  1,200 claims and 6,555 subquestions.
+  Two sets of questions were collected per claim. About 2.7 questions per
+  claim in a single set.
+
+Use it for
+  search_planning. A subquestion is close to a web_search query, especially
+  for a compound claim.
+
+How to use it
+  Prefer questions that follow directly from the claim. Implied questions
+  often depend on the fact-checker's article, which the model will not have
+  at search-planning time.
+  Political claims are a slice of the domain, not the whole domain.
+
+Where
+  https://jifan-chen.github.io/ClaimDecomp/
+  Paper: https://arxiv.org/abs/2205.06938
+
+License
+  Confirm the site license before redistributing.
+
+
+13. FreshQA
+-----------
+What it is
+  A small question set that is refreshed over time. It includes fast-changing
+  facts and questions with a false premise, so a previously true answer can
+  become wrong.
+
+Size
+  600 questions: 500 test and 100 dev.
+  The question count stays in this range; answers are updated, so a downloaded
+  copy goes stale.
+
+Use it for
+  The "outdated rather than universally false" case. Rewrite a question and
+  its dated answer into a claim, then pair it with evidence from a stated
+  retrieval date.
+
+How to use it
+  Too small, and too much a QA set, to be a training corpus. Use it to build
+  a few dozen evaluation claims with an explicit "as of" date.
+
+Where
+  https://github.com/freshllms/freshqa
+
+License
+  Confirm the repository license. The set is maintained by Google Research.
+
+
+14. FEVEROUS
+------------
+What it is
+  A FEVER-style set over Wikipedia text and tables. Labels are SUPPORTS,
+  REFUTES, and NOT ENOUGH INFO. The release includes the annotator's search
+  operations: query keywords, page clicks, and timestamps.
+
+Size
+  87,026 claims.
+
+Use it for
+  search_planning, as examples of short queries that still name the entity.
+  Also claim_evaluation when the evidence is a sentence or a table cell.
+
+How to use it
+  Secondary to AVeriTeC. The queries search Wikipedia, not the open web.
+  Useful if the team wants more query examples than AVeriTeC's 2.6 questions
+  per claim provide.
+
+Where
+  https://huggingface.co/datasets/fever/feverous
+
+License
+  Same Wikipedia / CC BY-SA 3.0 terms as FEVER.
+
+
+15. WildHallucinations
+----------------------
+What it is
+  Entities mined from real user-chatbot conversations. Fifteen models wrote
+  long descriptions, which were automatically checked against web pages
+  retrieved for those entities. About half of the entities have no Wikipedia
+  page.
+
+Size
+  7,917 entities and 118,785 generations.
+
+Use it for
+  Passages about niche topics, and for cases where search should come back
+  thin. That matches the proposal's risk that a simple but obscure claim may
+  not have enough public sources.
+
+How to use it
+  Use the generations as claim-extraction input. Do not treat the automatic
+  factuality scores as gold verdicts. If a niche example is kept for
+  evaluation, a person has to check the evidence.
+
+Where
+  Paper: https://arxiv.org/abs/2407.17468
+
+
+Datasets that do not fit the training labels
+---------------------------------------------
+These are related, and a couple are already cited in the proposal. They are
+poor sources of Supported / Contradicted / Insufficient Evidence labels.
+
+LIAR, LIAR-PLUS, and MultiFC
+  Journalistic ratings such as half-true and pants-on-fire. Those ratings do
+  not match the three evidence labels, and they often depend on the
+  fact-checker's write-up rather than a supplied evidence packet.
+
+SelfCheckGPT
+  Compares multiple samples from the same model. The proposal uses it as a
+  no-retrieval baseline. It has no evidence to select and no tool call to
+  learn.
+
+TruthfulQA
+  Tests whether a model repeats common falsehoods. It is not evidence
+  selection or evidence-conditioned verification.
+
+HaluEval
+  35,000 examples under an MIT license: 10,000 QA, 10,000 dialogue, and
+  10,000 summarization examples with a synthetic hallucinated answer, plus
+  5,000 human-labeled ChatGPT answers marked hallucination yes or no for the
+  whole answer. The 5,000 can add LLM text. The yes/no response label is too
+  coarse for this pipeline, and the 30,000 synthetic pairs are a weak verdict
+  source.
+  https://github.com/RUCAIBox/HaluEval
+
+CLEF CheckThat!
+  Shared tasks on check-worthy claims in debates and tweets, in several
+  languages and years, so there is no single size. Check-worthiness is a
+  ranking of what a journalist should inspect. It is not the same decision as
+  "extract every checkable fact." ClaimBuster is the clearer English resource
+  for fact versus non-fact. CheckThat is optional if the team later wants
+  tweet-style input.
+
+
+Suggested cut for the semester
+------------------------------
+This stays inside the training sizes in DATASET_PLAN.txt.
+
+1. Leave Factcheck-Bench, the AVeriTeC dev and test splits, and a balanced
+   FEVER dev sample out of training. That is the external evaluation set.
+2. Convert AVeriTeC training claims into search-planning, evidence-selection,
+   and claim-evaluation examples. Balance the four AVeriTeC verdicts after
+   mapping conflicting evidence to Insufficient Evidence.
+3. Convert FELM world-knowledge and science segments, plus FActScore
+   biographies, into claim-extraction examples.
+4. Add a balanced FEVER and VitaminC sample only where AVeriTeC is thin:
+   Supported versus Contradicted versus Insufficient Evidence, and cases
+   where changing the evidence flips the label.
+5. Add a small number of ClaimBuster non-claims, ClaimDecomp questions, WiCE
+   partial-support claims, and FreshQA dated claims so the boundary list in
+   DATASET_PLAN.txt is actually present.
+6. Record source dataset, original id, split, and license next to every
+   converted line.
+
+Licenses that bind a public release of the converted JSONL:
+  Non-commercial: AVeriTeC (CC BY-NC 4.0), FELM (CC BY-NC-SA 4.0),
+  SciFact (CC BY-NC 2.0).
+  Share-alike: FEVER, FEVEROUS, and VitaminC (CC BY-SA 3.0).
+  Attribution: WiCE annotations (ODC-BY).
+  MIT: RAGTruth. HaluEval is also MIT if any of its text is kept.
+
+Internal course use of the non-commercial sets is fine. Publishing the
+training file means either keeping those license terms or leaving those
+examples out of the release.
