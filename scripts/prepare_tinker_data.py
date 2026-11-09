@@ -1,9 +1,10 @@
-"""Create deterministic, task-balanced Tinker pilot datasets.
+"""Create deterministic, task- and source-balanced Tinker pilot datasets.
 
 The complete converted corpus is intentionally much larger than a sensible
-first training run.  This script reservoir-samples each task independently,
-keeps the repository's train and eval splits separate, and writes ordinary
-conversation JSONL that tinker-cookbook can consume directly.
+first training run. This script reservoir-samples within every source dataset,
+then draws round-robin across sources for each task. It keeps the repository's
+train and eval splits separate and writes ordinary conversation JSONL that
+tinker-cookbook can consume directly.
 """
 
 from __future__ import annotations
@@ -27,23 +28,57 @@ TASKS = (
 )
 
 
-def reservoir_sample(path: Path, size: int, seed: str) -> tuple[list[dict], int]:
-    rng = random.Random(seed)
-    sample: list[str] = []
+def source_balanced_sample(path: Path, size: int, seed: str) -> tuple[list[dict], int]:
+    """Sample a task without allowing its largest source to dominate.
+
+    Each source gets an independent reservoir of at most ``size`` rows. The
+    final sample cycles across those reservoirs until the requested size is
+    reached. Small sources are therefore fully represented before large sources
+    fill the remaining slots.
+    """
+
+    samples: dict[str, list[str]] = {}
+    source_rngs: dict[str, random.Random] = {}
+    source_seen: Counter = Counter()
     seen = 0
     with path.open(encoding="utf-8") as handle:
         for line in handle:
             if not line.strip():
                 continue
+            row = json.loads(line)
+            source = row.get("source_dataset", "unknown")
+            if source not in source_rngs:
+                source_rngs[source] = random.Random(f"{seed}:{source}")
             seen += 1
+            source_seen[source] += 1
+            sample = samples.setdefault(source, [])
             if len(sample) < size:
                 sample.append(line)
                 continue
-            replacement = rng.randrange(seen)
+            replacement = source_rngs[source].randrange(source_seen[source])
             if replacement < size:
                 sample[replacement] = line
 
-    rows = [json.loads(line) for line in sample]
+    source_order = sorted(samples)
+    random.Random(f"{seed}:source-order").shuffle(source_order)
+    for source in source_order:
+        random.Random(f"{seed}:{source}:shuffle").shuffle(samples[source])
+
+    selected: list[str] = []
+    offsets = {source: 0 for source in source_order}
+    active = list(source_order)
+    while active and len(selected) < size:
+        next_active = []
+        for source in active:
+            offset = offsets[source]
+            if offset < len(samples[source]) and len(selected) < size:
+                selected.append(samples[source][offset])
+                offsets[source] += 1
+            if offsets[source] < len(samples[source]):
+                next_active.append(source)
+        active = next_active
+
+    rows = [json.loads(line) for line in selected]
     for row in rows:
         if row.get("task") != path.stem:
             raise ValueError(f"Task mismatch in {path}: {row.get('task')!r}")
@@ -98,7 +133,7 @@ def main() -> None:
         rows: list[dict] = []
         for task in TASKS:
             path = PROCESSED / split / f"{task}.jsonl"
-            selected, seen = reservoir_sample(
+            selected, seen = source_balanced_sample(
                 path, per_task, seed=f"{args.seed}:{split}:{task}"
             )
             rows.extend(selected)
@@ -115,6 +150,7 @@ def main() -> None:
 
     manifest = {
         "seed": args.seed,
+        "sampling_strategy": "equal round-robin across source_dataset within each task",
         "requested_per_task": {
             "train": args.train_per_task,
             "eval": args.eval_per_task,

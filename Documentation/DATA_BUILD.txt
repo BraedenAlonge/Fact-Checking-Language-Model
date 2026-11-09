@@ -18,13 +18,13 @@ and test splits, plus FEVER 2.0, Factcheck-Bench, and FreshQA.
 Counts
 ------
 eval/claim_evaluation                    200994
-eval/claim_extraction                    7341
+eval/claim_extraction                    7966
 eval/evidence_selection                  200994
-eval/search_planning                     12636
+eval/search_planning                     3104
 train/claim_evaluation                   810221
-train/claim_extraction                   11800
+train/claim_extraction                   22983
 train/evidence_selection                 810221
-train/search_planning                    98941
+train/search_planning                    18907
 
 Verdicts in claim_evaluation
 ---------------------------
@@ -92,9 +92,10 @@ WiCE not_supported and partially_supported map to Insufficient
 Evidence. Missing support is not labeled Contradicted.
 RAGTruth Evident Conflict maps to Contradicted. Baseless info and
 subtle conflicts map to Insufficient Evidence. Data-to-text
-responses are left out.
-FELM math and reasoning are left out. Writing segments are used only
-for claim extraction. False world-knowledge and science segments
+responses are left out. RAGTruth is not used for claim extraction
+because it does not label factual claim boundaries.
+FELM math, reasoning, and writing recommendations are left out of
+claim extraction. False world-knowledge and science segments
 are verdict examples only when the annotator wrote a correction.
 FActScore human atomic facts are claim-extraction examples. Their
 Supported and Not-supported labels are not turned into verdicts,
@@ -104,12 +105,14 @@ fields are Wikipedia element ids without the sentence or cell text,
 so they are not used as verdicts.
 Factcheck-Bench prompts are removed from the FELM training rows so
 the same response is not in both splits.
+ClaimBuster labels 0 and 1 are factual and become one-claim
+extraction examples; label 2 is non-factual and becomes an empty
+claims example. A stable sentence hash reserves about 10 percent
+for evaluation because the public mirror has no official split.
 
 Not included
 ------------
 LLM-AggreFact is gated on Hugging Face and was not downloaded.
-ClaimBuster's Zenodo files returned HTTP 403, and no public mirror
-was available from this machine.
 ClaimDecomp's full release is not public. The public spreadsheet
 was converted in full.
 WildHallucinations was not converted. Its verdicts are automatic,
@@ -120,8 +123,9 @@ converted. Their labels do not match this project's evidence rules.
 Notes
 -----
 LLM-AggreFact was not downloaded because the Hugging Face dataset is gated.
-ClaimBuster was not downloaded because Zenodo returned HTTP 403 and the checked GitHub paths do not host the CSV.
+ClaimBuster was loaded from the Nithiwat/claimbuster Hugging Face Parquet mirror because Zenodo's file host was inaccessible from this machine. hash_eval/check_worthy_factual=590; hash_eval/non_factual=1572; hash_eval/unimportant_factual=263; hash_train/check_worthy_factual=5061; hash_train/non_factual=13844; hash_train/unimportant_factual=2203.
 AVeriTeC's test file has 2215 claims and no verdicts or evidence, so those claims were not converted. Train and dev were converted.
+FEVEROUS search targets were filtered to at least four word tokens and, when the claim contains numbers, to queries retaining every number: kept=11961; dropped_short=73862; dropped_numbers=18434.
 ClaimDecomp's public spreadsheet exposed 100 claims. The authors ask to be emailed for the rest, so the remaining annotated claims were not included.
 FEVER evidence sentences missing from the Wikipedia dump: 2258. Those sentences were left out.
 

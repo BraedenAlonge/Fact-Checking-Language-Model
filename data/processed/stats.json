@@ -1,13 +1,13 @@
 {
   "counts": {
     "eval/claim_evaluation": 200994,
-    "eval/claim_extraction": 7341,
+    "eval/claim_extraction": 7966,
     "eval/evidence_selection": 200994,
-    "eval/search_planning": 12636,
+    "eval/search_planning": 3104,
     "train/claim_evaluation": 810221,
-    "train/claim_extraction": 11800,
+    "train/claim_extraction": 22983,
     "train/evidence_selection": 810221,
-    "train/search_planning": 98941
+    "train/search_planning": 18907
   },
   "verdicts": {
     "eval/averitec/Contradicted": 305,
@@ -48,8 +48,9 @@
   },
   "notes": [
     "LLM-AggreFact was not downloaded because the Hugging Face dataset is gated.",
-    "ClaimBuster was not downloaded because Zenodo returned HTTP 403 and the checked GitHub paths do not host the CSV.",
+    "ClaimBuster was loaded from the Nithiwat/claimbuster Hugging Face Parquet mirror because Zenodo's file host was inaccessible from this machine. hash_eval/check_worthy_factual=590; hash_eval/non_factual=1572; hash_eval/unimportant_factual=263; hash_train/check_worthy_factual=5061; hash_train/non_factual=13844; hash_train/unimportant_factual=2203.",
     "AVeriTeC's test file has 2215 claims and no verdicts or evidence, so those claims were not converted. Train and dev were converted.",
+    "FEVEROUS search targets were filtered to at least four word tokens and, when the claim contains numbers, to queries retaining every number: kept=11961; dropped_short=73862; dropped_numbers=18434.",
     "ClaimDecomp's public spreadsheet exposed 100 claims. The authors ask to be emailed for the rest, so the remaining annotated claims were not included.",
     "FEVER evidence sentences missing from the Wikipedia dump: 2258. Those sentences were left out."
   ]

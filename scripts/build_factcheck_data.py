@@ -10,6 +10,7 @@ Run scripts/download_raw.py first. This script only reads data/raw.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import re
 import tarfile
@@ -886,8 +887,9 @@ def sentence_spans(text: str) -> list[tuple[int, int, str]]:
         found = text.find(part, position)
         if found < 0:
             found = position
-        if len(part.split()) >= 6:
-            spans.append((found, found + len(part), part.strip()))
+        clean = re.sub(r"\s+", " ", part).strip()
+        if len(clean.split()) >= 6:
+            spans.append((found, found + len(part), clean))
         position = found + len(part)
     return spans
 
@@ -921,23 +923,7 @@ def convert_ragtruth(store: Store) -> None:
             continue
         bucket = "train" if row.get("split") == "train" else "eval"
         split = row.get("split") or "train"
-        prompt = clip(source.get("prompt") or "", 240)
-        claims = [
-            {"claim_id": f"c{index + 1}", "claim_text": text, "context": prompt or source.get("task_type")}
-            for index, (_start, _end, text) in enumerate(spans)
-        ]
-        record(
-            store,
-            bucket=bucket,
-            task="claim_extraction",
-            dataset="ragtruth",
-            split=split,
-            source_id=str(row.get("id")),
-            license_name=license_name,
-            user=response,
-            assistant={"claims": claims},
-            tags=["ragtruth", source.get("task_type"), source.get("source") or "source"],
-        )
+        context = f"Sentence from a model-generated {source.get('task_type', 'retrieved-context').lower()} response."
         passage = clip(str(source.get("source_info") or ""), 1600)
         if not passage:
             continue
@@ -962,7 +948,7 @@ def convert_ragtruth(store: Store) -> None:
                 source_id=f"{row.get('id')}-s{index}",
                 license_name=license_name,
                 claim_text=text,
-                context=prompt or "Sentence from a retrieved-context response.",
+                context=context,
                 results=[item],
                 selected=chosen,
                 label=label,
@@ -975,7 +961,9 @@ def convert_ragtruth(store: Store) -> None:
 
 def convert_felm(store: Store, held_out_prompts: set[str]) -> None:
     license_name = "CC BY-NC-SA 4.0"
-    keep_extraction = {"wk", "science", "writing_rec"}
+    # writing_rec mixes advice, slogans, opinions, and facts without claim-boundary
+    # labels. Treating every segment as a claim teaches the opposite of the task.
+    keep_extraction = {"wk", "science"}
     for row in iter_jsonl(RAW / "felm" / "all.jsonl"):
         domain = row.get("domain") or ""
         if domain not in keep_extraction:
@@ -1081,6 +1069,74 @@ def convert_factscore(store: Store) -> None:
                         assistant={"claims": claims},
                         tags=["factscore", model],
                     )
+
+
+def convert_claimbuster(store: Store) -> None:
+    """Convert ClaimBuster fact/non-fact labels into extraction examples.
+
+    The public mirror uses 0=unimportant factual, 1=check-worthy factual,
+    and 2=non-factual. Both factual classes are extracted because this project
+    checks facts regardless of journalistic importance. The source has no
+    official split, so a stable text hash reserves 10 percent for evaluation;
+    identical sentences always land in the same split.
+    """
+
+    try:
+        import pyarrow.parquet as parquet
+    except ImportError as exc:  # pragma: no cover - environment-dependent
+        raise RuntimeError(
+            "ClaimBuster conversion requires pyarrow; run the build from the project .venv"
+        ) from exc
+
+    path = RAW / "claimbuster" / "train.parquet"
+    if not path.exists():
+        NOTES.append("ClaimBuster was not converted because its Parquet mirror was not downloaded.")
+        return
+
+    counts: Counter = Counter()
+    rows = parquet.read_table(path, columns=["text", "checkworthiness"]).to_pylist()
+    for index, row in enumerate(rows):
+        text = re.sub(r"\s+", " ", (row.get("text") or "")).strip()
+        label = row.get("checkworthiness")
+        if not text or label not in (0, 1, 2):
+            continue
+        held_out = hashlib.sha256(text.encode("utf-8")).digest()[0] < 26
+        bucket = "eval" if held_out else "train"
+        split = "hash_eval" if held_out else "hash_train"
+        label_name = {
+            0: "unimportant_factual",
+            1: "check_worthy_factual",
+            2: "non_factual",
+        }[label]
+        claims = []
+        if label in (0, 1):
+            claims.append(
+                {
+                    "claim_id": "c1",
+                    "claim_text": text,
+                    "context": "Statement from a U.S. presidential debate.",
+                }
+            )
+        record(
+            store,
+            bucket=bucket,
+            task="claim_extraction",
+            dataset="claimbuster",
+            split=split,
+            source_id=str(index),
+            license_name="CC BY-SA 4.0 (mirror metadata)",
+            user=text,
+            assistant={"claims": claims},
+            tags=["claimbuster", label_name],
+        )
+        counts[(split, label_name)] += 1
+    NOTES.append(
+        "ClaimBuster was loaded from the Nithiwat/claimbuster Hugging Face Parquet mirror because Zenodo's file host was inaccessible from this machine. "
+        + "; ".join(
+            f"{split}/{label}={count}" for (split, label), count in sorted(counts.items())
+        )
+        + "."
+    )
 
 
 def convert_factcheck_bench(store: Store) -> set[str]:
@@ -1191,6 +1247,9 @@ def convert_claimdecomp(store: Store) -> None:
 
 def convert_feverous(store: Store) -> None:
     license_name = "CC BY-SA 3.0"
+    kept = 0
+    dropped_short = 0
+    dropped_numbers = 0
     files = {
         "train": (RAW / "feverous" / "feverous_train_challenges.jsonl", "train"),
         "dev": (RAW / "feverous" / "feverous_dev_challenges.jsonl", "eval"),
@@ -1204,11 +1263,18 @@ def convert_feverous(store: Store) -> None:
             for operation in row.get("annotator_operations") or []:
                 if (operation.get("operation") or "").lower() != "search":
                     continue
-                query = (operation.get("value") or "").strip()
-                if len(query) < 3 or query.startswith("?"):
+                query = re.sub(r"\s+", " ", (operation.get("value") or "")).strip()
+                if query.startswith("?") or len(re.findall(r"\b\w+\b", query)) < 4:
+                    dropped_short += 1
+                    continue
+                claim_numbers = set(re.findall(r"\b\d[\d,.]*\b", claim))
+                query_numbers = set(re.findall(r"\b\d[\d,.]*\b", query))
+                if claim_numbers and not claim_numbers.issubset(query_numbers):
+                    dropped_numbers += 1
                     continue
                 queries.append(query)
             for q_index, query in enumerate(dict.fromkeys(queries)):
+                kept += 1
                 record(
                     store,
                     bucket=bucket,
@@ -1225,6 +1291,11 @@ def convert_feverous(store: Store) -> None:
                     assistant={"claim_id": "c1", "tool": "web_search", "arguments": {"query": query}},
                     tags=["feverous", "annotator_query"],
                 )
+    NOTES.append(
+        "FEVEROUS search targets were filtered to at least four word tokens and, "
+        "when the claim contains numbers, to queries retaining every number: "
+        f"kept={kept}; dropped_short={dropped_short}; dropped_numbers={dropped_numbers}."
+    )
 
 
 def write_report(store: Store) -> None:
@@ -1294,9 +1365,10 @@ def write_report(store: Store) -> None:
             "Evidence. Missing support is not labeled Contradicted.",
             "RAGTruth Evident Conflict maps to Contradicted. Baseless info and",
             "subtle conflicts map to Insufficient Evidence. Data-to-text",
-            "responses are left out.",
-            "FELM math and reasoning are left out. Writing segments are used only",
-            "for claim extraction. False world-knowledge and science segments",
+            "responses are left out. RAGTruth is not used for claim extraction",
+            "because it does not label factual claim boundaries.",
+            "FELM math, reasoning, and writing recommendations are left out of",
+            "claim extraction. False world-knowledge and science segments",
             "are verdict examples only when the annotator wrote a correction.",
             "FActScore human atomic facts are claim-extraction examples. Their",
             "Supported and Not-supported labels are not turned into verdicts,",
@@ -1306,12 +1378,14 @@ def write_report(store: Store) -> None:
             "so they are not used as verdicts.",
             "Factcheck-Bench prompts are removed from the FELM training rows so",
             "the same response is not in both splits.",
+            "ClaimBuster labels 0 and 1 are factual and become one-claim",
+            "extraction examples; label 2 is non-factual and becomes an empty",
+            "claims example. A stable sentence hash reserves about 10 percent",
+            "for evaluation because the public mirror has no official split.",
             "",
             "Not included",
             "------------",
             "LLM-AggreFact is gated on Hugging Face and was not downloaded.",
-            "ClaimBuster's Zenodo files returned HTTP 403, and no public mirror",
-            "was available from this machine.",
             "ClaimDecomp's full release is not public. The public spreadsheet",
             "was converted in full.",
             "WildHallucinations was not converted. Its verdicts are automatic,",
@@ -1343,9 +1417,6 @@ def main() -> None:
     NOTES.append(
         "LLM-AggreFact was not downloaded because the Hugging Face dataset is gated."
     )
-    NOTES.append(
-        "ClaimBuster was not downloaded because Zenodo returned HTTP 403 and the checked GitHub paths do not host the CSV."
-    )
     store = Store()
     print("Factcheck-Bench", flush=True)
     held_out = convert_factcheck_bench(store)
@@ -1353,6 +1424,8 @@ def main() -> None:
     convert_felm(store, held_out)
     print("FActScore", flush=True)
     convert_factscore(store)
+    print("ClaimBuster", flush=True)
+    convert_claimbuster(store)
     print("AVeriTeC", flush=True)
     convert_averitec(store)
     print("SciFact", flush=True)

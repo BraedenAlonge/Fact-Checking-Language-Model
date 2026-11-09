@@ -21,8 +21,8 @@ Public datasets have been converted into the four tasks. Training and evaluation
 
 | Split | Claim extraction | Search planning | Evidence selection | Claim evaluation |
 | --- | ---: | ---: | ---: | ---: |
-| Train | 11,800 | 98,941 | 810,221 | 810,221 |
-| Eval | 7,341 | 12,636 | 200,994 | 200,994 |
+| Train | 22,983 | 18,907 | 810,221 | 810,221 |
+| Eval | 7,966 | 3,104 | 200,994 | 200,994 |
 
 The 25-example gold set remains a schema and behavior review file. Its evidence is synthetic and its URLs use the reserved `.example` domain. It is not part of the training files.
 
@@ -45,11 +45,16 @@ data/processed/
 scripts/
   download_raw.py
   build_factcheck_data.py
+  prepare_tinker_data.py
+  audit_tinker_pilot.py
+  estimate_tinker_tokens.py
+  train_tinker_sft.py
 README.md
 ```
 
 - `Documentation/` contains the broader project proposal, system design, dataset plan, the catalog of public datasets, and `DATA_BUILD.txt`, which records how those datasets were converted.
-- `data/processed/` contains the converted train and eval JSONL. The JSONL files are large and are gitignored; `stats.json` records the counts. Rebuild them with `python scripts/download_raw.py` and `python scripts/build_factcheck_data.py`.
+- `data/processed/` contains the converted train and eval JSONL. The JSONL files are large and are gitignored; `stats.json` records the counts. Rebuild them through the project environment with `.\.venv\Scripts\python.exe scripts\download_raw.py` and `.\.venv\Scripts\python.exe scripts\build_factcheck_data.py`.
+- `Documentation/PROJECT_PROGRESS.md` is the live record of acquisition, audits, Tinker runs, decisions, and current action items.
 - `Preliminary_Data/GOLD_SET_SCHEMA.txt` defines the shared record format, task-specific output schemas, labeling rules, and review checklist.
 - `Preliminary_Data/gold_examples_v1.jsonl` contains the initial 25 examples.
 

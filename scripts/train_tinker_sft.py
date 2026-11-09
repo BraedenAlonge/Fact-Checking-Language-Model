@@ -88,6 +88,8 @@ def main() -> None:
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--lora-rank", type=int, default=16)
     parser.add_argument("--eval-every", type=int, default=100)
+    parser.add_argument("--save-every", type=int, default=0)
+    parser.add_argument("--session-name")
     parser.add_argument("--log-path", type=Path)
     args = parser.parse_args()
 
@@ -96,6 +98,8 @@ def main() -> None:
             parser.error(f"missing prepared dataset: {path}")
     if min(args.batch_size, args.max_steps, args.eval_limit) < 1:
         parser.error("batch size, max steps, and eval limit must be positive")
+    if args.eval_every < 1 or args.save_every < 0:
+        parser.error("eval-every must be positive and save-every cannot be negative")
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     log_path = args.log_path or ROOT / "runs" / f"qwen35-4b-smoke-{timestamp}"
@@ -112,6 +116,7 @@ def main() -> None:
         "learning_rate": args.learning_rate,
         "lora_rank": args.lora_rank,
         "eval_every": args.eval_every,
+        "save_every": args.save_every,
         "log_path": str(log_path),
     }
     print(json.dumps(plan, indent=2), flush=True)
@@ -141,11 +146,11 @@ def main() -> None:
         learning_rate=args.learning_rate,
         num_epochs=1,
         lora_rank=args.lora_rank,
-        save_every=0,
+        save_every=args.save_every,
         eval_every=args.eval_every,
         infrequent_eval_every=0,
         max_steps=args.max_steps,
-        session_name=f"background-checkers-smoke-{timestamp}",
+        session_name=args.session_name or f"background-checkers-{'smoke' if args.max_steps <= 5 else 'pilot'}-{timestamp}",
     )
     asyncio.run(train.main(config))
 

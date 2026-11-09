@@ -27,7 +27,7 @@ def ratio(count: int, total: int) -> float:
 def main() -> None:
     report: dict = {"files": {}, "cross_split": {}}
     fingerprints: dict[str, set[str]] = {}
-    ids: dict[str, set[tuple[str, str, str]]] = {}
+    ids: dict[str, set[tuple[str, str, str, str]]] = {}
 
     for split, path in FILES.items():
         task_counts: Counter = Counter()
@@ -37,7 +37,7 @@ def main() -> None:
         stances: Counter = Counter()
         qualities: Counter = Counter()
         message_fingerprints: set[str] = set()
-        source_ids: set[tuple[str, str, str]] = set()
+        source_ids: set[tuple[str, str, str, str]] = set()
 
         with path.open(encoding="utf-8") as handle:
             for line in handle:
@@ -49,6 +49,7 @@ def main() -> None:
                     (
                         task,
                         row.get("source_dataset", "unknown"),
+                        row.get("source_split", "unknown"),
                         str(row.get("source_id", "")),
                     )
                 )
@@ -205,7 +206,7 @@ def main() -> None:
 
     report["cross_split"] = {
         "exact_message_overlap": len(fingerprints["train"] & fingerprints["eval"]),
-        "task_dataset_original_id_overlap": len(ids["train"] & ids["eval"]),
+        "task_dataset_split_source_id_overlap": len(ids["train"] & ids["eval"]),
     }
     print(json.dumps(report, indent=2))
 

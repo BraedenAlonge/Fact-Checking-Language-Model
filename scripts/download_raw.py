@@ -27,7 +27,9 @@ URLS = {
     "averitec/dev.json": "https://huggingface.co/chenxwh/AVeriTeC/resolve/main/data/dev.json",
     "averitec/test.json": "https://huggingface.co/chenxwh/AVeriTeC/resolve/main/data/test.json",
     "factscore/data.zip": "https://drive.google.com/uc?export=download&id=155exEdKs7R21gZF4G-x54-XN3qswBcPo",
-    "claimbuster/all_sentences.csv": "https://zenodo.org/records/3609356/files/all_sentences.csv?download=1",
+    # Zenodo's public file host returns HTTP 403 or times out from some clients.
+    # This is the 23,533-row ClaimBuster conversion published on Hugging Face.
+    "claimbuster/train.parquet": "https://huggingface.co/datasets/Nithiwat/claimbuster/resolve/main/data/train-00000-of-00001-5f01fa457a7cb014.parquet",
     "ragtruth/response.jsonl": "https://raw.githubusercontent.com/ParticleMedia/RAGTruth/main/dataset/response.jsonl",
     "ragtruth/source_info.jsonl": "https://raw.githubusercontent.com/ParticleMedia/RAGTruth/main/dataset/source_info.jsonl",
     "wice/claim/train.jsonl": "https://raw.githubusercontent.com/ryokamoi/wice/main/data/entailment_retrieval/claim/train.jsonl",
