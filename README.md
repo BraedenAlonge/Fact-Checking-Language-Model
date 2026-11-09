@@ -49,6 +49,7 @@ scripts/
   audit_tinker_pilot.py
   estimate_tinker_tokens.py
   train_tinker_sft.py
+  evaluate_tinker_checkpoint.py
 README.md
 ```
 

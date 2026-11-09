@@ -204,10 +204,18 @@ def score_row(row: dict, prediction: str) -> dict:
             evidence_f1=0.0 if expected_ids else 1.0,
             copied_items=0,
             predicted_items=0,
+            matched_items=0,
+            stance_correct=0,
+            quality_correct=0,
             refinement_correct=False,
         )
     else:
-        result.update(label_correct=False, source_id_f1=0.0)
+        result.update(
+            label_correct=False,
+            expected_label=expected.get("label"),
+            predicted_label=None,
+            source_id_f1=0.0,
+        )
     try:
         actual = json.loads(prediction)
     except (json.JSONDecodeError, TypeError):
@@ -257,11 +265,22 @@ def score_row(row: dict, prediction: str) -> dict:
         actual_ids = {item.get("source_id") for item in actual_items if item.get("source_id")}
         tp, fp, fn, evidence_f1 = prf(expected_ids, actual_ids)
         inputs = {item.get("source_id"): item for item in user.get("search_results", [])}
+        expected_by_id = {
+            item.get("source_id"): item for item in expected.get("evidence", [])
+        }
         copied = 0
+        matched = 0
+        stance_correct = 0
+        quality_correct = 0
         for item in actual_items:
             source = inputs.get(item.get("source_id"), {})
             if source and all(item.get(field, "") == source.get(field, "") for field in ("title", "url", "excerpt")):
                 copied += 1
+            expected_item = expected_by_id.get(item.get("source_id"))
+            if expected_item:
+                matched += 1
+                stance_correct += item.get("stance") == expected_item.get("stance")
+                quality_correct += item.get("quality") == expected_item.get("quality")
         result.update(
             evidence_tp=tp,
             evidence_fp=fp,
@@ -269,6 +288,9 @@ def score_row(row: dict, prediction: str) -> dict:
             evidence_f1=evidence_f1,
             copied_items=copied,
             predicted_items=len(actual_items),
+            matched_items=matched,
+            stance_correct=stance_correct,
+            quality_correct=quality_correct,
             refinement_correct=actual.get("needs_refinement") == expected.get("needs_refinement"),
         )
     else:
@@ -277,6 +299,8 @@ def score_row(row: dict, prediction: str) -> dict:
         _, _, _, source_f1 = prf(expected_ids, actual_ids)
         result.update(
             label_correct=actual.get("label") == expected.get("label"),
+            expected_label=expected.get("label"),
+            predicted_label=actual.get("label"),
             source_id_f1=source_f1,
         )
     return result
@@ -328,17 +352,49 @@ def summarize(predictions: list[dict], suite: list[dict]) -> dict:
                 fp = sum(score.get("evidence_fp", 0) for score in scores)
                 fn = sum(score.get("evidence_fn", 0) for score in scores)
                 predicted = sum(score.get("predicted_items", 0) for score in scores)
+                matched = sum(score.get("matched_items", 0) for score in scores)
                 base.update(
                     evidence_micro_f1=(2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else 1.0),
                     evidence_copy_rate=(sum(score.get("copied_items", 0) for score in scores) / predicted if predicted else 1.0),
+                    stance_accuracy=(sum(score.get("stance_correct", 0) for score in scores) / matched if matched else 1.0),
+                    quality_accuracy=(sum(score.get("quality_correct", 0) for score in scores) / matched if matched else 1.0),
                     refinement_accuracy=mean(score.get("refinement_correct", False) for score in scores),
                 )
             else:
+                verdicts = ("Supported", "Contradicted", "Insufficient Evidence")
+                confusion = Counter(
+                    (score.get("expected_label"), score.get("predicted_label") or "invalid")
+                    for score in scores
+                )
+                label_f1 = []
+                recalls = {}
+                for verdict in verdicts:
+                    tp = confusion[(verdict, verdict)]
+                    fp = sum(count for (expected_label, predicted_label), count in confusion.items() if predicted_label == verdict and expected_label != verdict)
+                    fn = sum(count for (expected_label, predicted_label), count in confusion.items() if expected_label == verdict and predicted_label != verdict)
+                    denominator = 2 * tp + fp + fn
+                    label_f1.append(2 * tp / denominator if denominator else 0.0)
+                    recalls[verdict] = tp / (tp + fn) if tp + fn else 0.0
                 base.update(
                     label_accuracy=mean(score.get("label_correct", False) for score in scores),
+                    label_macro_f1=mean(label_f1),
+                    label_recall=recalls,
+                    label_confusion={
+                        f"{expected_label} -> {predicted_label}": count
+                        for (expected_label, predicted_label), count in sorted(confusion.items())
+                    },
                     mean_source_id_f1=mean(score.get("source_id_f1", 0.0) for score in scores),
                 )
-            task_summary[task] = {key: round(value, 4) if isinstance(value, float) else value for key, value in base.items()}
+            task_summary[task] = {
+                key: (
+                    round(value, 4)
+                    if isinstance(value, float)
+                    else {nested_key: round(nested_value, 4) for nested_key, nested_value in value.items()}
+                    if key == "label_recall"
+                    else value
+                )
+                for key, value in base.items()
+            }
         summary["models"][label] = task_summary
     return summary
 
