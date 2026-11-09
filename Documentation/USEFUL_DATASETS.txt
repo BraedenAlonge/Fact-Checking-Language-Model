@@ -16,13 +16,21 @@ sets are source material. Examples still have to be converted, checked against
 the label rules, and reviewed before they enter training.
 
 The gold file in Preliminary_Data is a schema review set. Its evidence packets
-are synthetic and its URLs use the reserved .example domain. Evidence-selection
-and claim-evaluation records that will actually be trained on should be rebuilt
-from real archived text, with a URL, title, and retrieval date.
+are synthetic and its URLs use the reserved .example domain. It is not a
+training target. Evidence-selection and claim-evaluation records that will
+actually be trained on should carry archived text from these public datasets,
+with a URL or document id, a title, and enough provenance to recover the
+original example.
 
-The semester targets in DATASET_PLAN.txt are a few hundred training examples
-per task, plus a smaller held-out set. Sample from these sources. Do not train
-on an entire large dataset.
+Convert each useful source at the size listed below. Use the official training
+split in full. Do not downsample a useful training split to a few hundred
+examples. Hold out development and test splits, and hold out Factcheck-Bench,
+so evaluation measures data the adapter has not trained on.
+
+A source or a slice is useful when it can be mapped onto one of the four task
+schemas and the three project labels. Slices that cannot are listed at the end
+and stay out. That filter is about fit, not about keeping the training file
+small.
 
 
 How to use a public dataset
@@ -88,7 +96,7 @@ AVeriTeC           Search questions, web evidence,  4,568 claims
 FActScore          Splitting a long LLM passage     183 people x 3 models,
                    into atomic claims               about 26-41 facts each
 
-Then sample these to fill out evidence selection and claim evaluation:
+Use these training splits in full for evidence selection and claim evaluation:
 
 Dataset            Best for                         Size
 -----------------  -------------------------------  ---------------------------
@@ -105,7 +113,7 @@ LLM-AggreFact      Binary support against a         about 30,000 rows
 SciFact            Scientific claims, only if       1,409 claims
                    that scope stays in
 
-Use a thin extra slice for the boundary cases named in DATASET_PLAN.txt:
+Use these in full for the boundary cases named in DATASET_PLAN.txt:
 
 Dataset            Best for                         Size
 -----------------  -------------------------------  ---------------------------
@@ -178,10 +186,11 @@ Use it for
   are a start for evidence, but the linked pages still need to be saved.
 
 How to use it
-  Keep world knowledge and science/technology. Drop math and reasoning; those
-  segments are not checked against web pages in the way this project checks
-  claims. Writing and recommendation mixes facts with advice, so it is useful
-  for fact-versus-opinion extraction and a poor source of verdicts.
+  Convert every world-knowledge and science/technology segment. Drop math and
+  reasoning; those segments are not checked against web pages in the way this
+  project checks claims. Convert the writing and recommendation segments for
+  claim extraction only. They mix facts with advice, so they are a poor source
+  of verdicts.
 
 Where
   https://github.com/hkust-nlp/felm
@@ -228,9 +237,10 @@ How to use it
   Turn each fact-checking question into a web_search tool call. Keep the
   claim date and location in the query when they change the meaning.
   Map Conflicting Evidence/Cherrypicking to Insufficient Evidence.
-  The set is heavy on Refuted. When sampling, balance toward Supported and
-  Insufficient Evidence so the adapter does not learn that "refuted" is the
-  default.
+  Convert all 3,068 training claims. The training split is about 57% Refuted.
+  Keep every training example. If that label dominates learning, oversample
+  Supported and Insufficient Evidence. Do not discard the rest of the split.
+  Keep dev, the original test, and the 2024 test file for evaluation.
   Save the archived page text. A URL alone is not an evidence excerpt.
 
 Where
@@ -292,16 +302,17 @@ Size
   FEVER 2.0: 1,174 adversarial claims, balanced across the three labels.
 
 Use it for
-  claim_evaluation, and evidence_selection when the "retrieved pages" are
-  Wikipedia sentences. Large enough to balance Supported, Contradicted, and
-  Insufficient Evidence after the real-web sets are sampled.
+  claim_evaluation, and evidence_selection when the retrieved text is
+  Wikipedia sentences. The training split is large enough to cover Supported,
+  Contradicted, and Insufficient Evidence at full scale.
 
 How to use it
-  Sample a few hundred, balanced across the three labels. Include FEVER 2.0
-  in the hard slice of the evaluation set rather than in the main training
-  pool.
-  The claims are short and artificial. They do not teach claim extraction
-  from LLM prose, and they do not teach open-web search.
+  Convert all 145,449 training claims. Keep the labeled dev split, the test
+  split, and FEVER 2.0 for evaluation. FEVER 2.0 was written to fool existing
+  checkers, so it belongs in the adversarial evaluation set.
+  The claims are short and were written by editing Wikipedia sentences. They
+  teach the three-way verdict and evidence selection. They do not teach claim
+  extraction from LLM prose, and they do not teach open-web search.
 
 Where
   https://fever.ai/dataset/fever.html
@@ -333,9 +344,10 @@ Use it for
   "outdated rather than universally false" case.
 
 How to use it
-  Sample contrastive groups: keep both evidence sides of a claim together in
+  Convert the training split in full. Keep both evidence sides of a claim in
   the same split, so the model cannot memorize the claim text as a label.
-  Record which Wikipedia revision the evidence came from.
+  Hold out the validation and test pairs. Record which Wikipedia revision the
+  evidence came from.
 
 Where
   https://github.com/TalSchuster/VitaminC
@@ -365,9 +377,10 @@ Use it for
   subclaims are also claim_extraction examples.
 
 How to use it
-  Prefer the claim-level file when training the evaluator, and the subclaim
-  file when training extraction. Evidence here is cited web text, which is
-  closer to this project than FEVER's Wikipedia-only sentences.
+  Convert the full training split. Use the 1,260 claim-level training claims
+  for the evaluator and the 3,470 training subclaims for extraction. Keep the
+  dev and test claims for evaluation. Evidence here is cited web text, which
+  is closer to this project than FEVER's Wikipedia-only sentences.
 
 Where
   https://github.com/ryokamoi/wice
@@ -401,11 +414,13 @@ Use it for
   Contradicted. Baseless information maps to Insufficient Evidence.
 
 How to use it
-  Prefer question answering and the news summarization slices. Data-to-text
-  is a different task (verbalizing structured records) and is a weak match.
+  Convert every question-answering response and both news-summarization sets.
+  That is 989 + 628 + 315 instances, and the six responses attached to each.
+  Leave out data-to-text writing. Verbalizing a structured record is a
+  different task, and those labels are a weak match.
   The judgment is against the supplied documents, not against the open web.
-  A response can be faithful to a bad retrieved page. Do not present these
-  labels as world-truth labels.
+  A response can be faithful to a bad retrieved page. These labels mean
+  agreement with the retrieved text.
 
 Where
   https://github.com/ParticleMedia/RAGTruth
@@ -432,10 +447,11 @@ Use it for
   contradiction and missing evidence.
 
 How to use it
-  Sample from WiCE, RAGTruth, ExpertQA, and FactCheck-GPT inside this pool
-  if those slices are easier to load here than from the original releases.
-  Do not also sample the same original ids from the source datasets, or the
-  same example will appear twice. Keep its test split out of training.
+  WiCE and RAGTruth are already converted from their own releases. From this
+  pool, convert the other sources in full: AggreFact CNN, AggreFact XSum,
+  TofuEval MediaSum, TofuEval MeetingBank, Reveal, ClaimVerify, FactCheck-GPT,
+  ExpertQA, and LFQA. Skip the WiCE and RAGTruth rows here so the same example
+  is not loaded twice. Keep the LLM-AggreFact test split for evaluation.
 
 Where
   https://huggingface.co/datasets/lytang/LLM-AggreFact
@@ -443,7 +459,7 @@ Where
 
 License
   The pool inherits the licenses of its 11 sources. Check each source before
-  redistributing a sampled file.
+  redistributing a converted file.
 
 
 10. SciFact
@@ -462,15 +478,15 @@ Size
   Use the official JSONL and the paper counts when those disagree.
 
 Use it for
-  claim_evaluation and evidence rationales, only if scientific claims stay
-  in scope. The proposal treats a dense new paper as out of scope. SciFact
-  claims are short and were written to be checked against a known abstract,
-  which is a narrower scientific task than checking an arbitrary paper.
+  claim_evaluation and evidence rationales on scientific claims. The claims
+  are short and were written to be checked against a known abstract. That is
+  a better fit than checking a dense new paper, which the proposal treats as
+  out of scope.
 
 How to use it
-  Skip it if the team bounds the project to general web and news claims.
-  If it stays, treat NoInfo as Insufficient Evidence and keep abstracts as
-  the evidence text.
+  Convert all 809 labeled training claims. Keep the 300-claim dev split for
+  evaluation. The original test labels were not public. Treat NoInfo as
+  Insufficient Evidence and keep the abstracts as the evidence text.
 
 Where
   https://github.com/allenai/scifact
@@ -497,8 +513,8 @@ Use it for
   non-claims. This is the fact-versus-opinion case in the proposal.
 
 How to use it
-  Non-factual sentences are negatives and should produce {"claims":[]}, or
-  be dropped when they sit inside a longer passage.
+  Convert all 23,533 sentences. Non-factual sentences are negatives and should
+  produce {"claims":[]}.
   Both factual classes are claims for this project. Check-worthiness here
   means "a journalist would check it," which is a narrower decision than
   "this is a checkable fact." Do not train the extractor to drop ordinary
@@ -529,10 +545,11 @@ Use it for
   for a compound claim.
 
 How to use it
-  Prefer questions that follow directly from the claim. Implied questions
-  often depend on the fact-checker's article, which the model will not have
-  at search-planning time.
-  Political claims are a slice of the domain, not the whole domain.
+  Convert every subquestion that follows directly from the claim. Implied
+  questions often depend on the fact-checker's article, which the model will
+  not have at search-planning time, so leave those out.
+  Political claims are one domain inside the training mix, alongside the
+  Wikipedia, science, and LLM-passage sources.
 
 Where
   https://jifan-chen.github.io/ClaimDecomp/
@@ -560,8 +577,10 @@ Use it for
   retrieval date.
 
 How to use it
-  Too small, and too much a QA set, to be a training corpus. Use it to build
-  a few dozen evaluation claims with an explicit "as of" date.
+  Rewrite all 600 questions into dated claims and use the full set as
+  evaluation data for outdated and false-premise claims. FreshQA is a public
+  benchmark with a dev/test split, so it stays out of training. Keep the
+  retrieval date on every converted claim.
 
 Where
   https://github.com/freshllms/freshqa
@@ -585,9 +604,10 @@ Use it for
   Also claim_evaluation when the evidence is a sentence or a table cell.
 
 How to use it
-  Secondary to AVeriTeC. The queries search Wikipedia, not the open web.
-  Useful if the team wants more query examples than AVeriTeC's 2.6 questions
-  per claim provide.
+  Convert the official training split in full, alongside AVeriTeC, and hold
+  out the development and test claims. The queries search Wikipedia, not the
+  open web. They are still useful search-planning examples, and the claims
+  are useful verdict examples.
 
 Where
   https://huggingface.co/datasets/fever/feverous
@@ -613,9 +633,9 @@ Use it for
   not have enough public sources.
 
 How to use it
-  Use the generations as claim-extraction input. Do not treat the automatic
-  factuality scores as gold verdicts. If a niche example is kept for
-  evaluation, a person has to check the evidence.
+  Use the generations as claim-extraction input. The factuality scores are
+  automatic, so they are not training verdicts. A niche example kept for
+  evaluation needs a person to check the evidence.
 
 Where
   Paper: https://arxiv.org/abs/2407.17468
@@ -658,24 +678,25 @@ CLEF CheckThat!
   tweet-style input.
 
 
-Suggested cut for the semester
-------------------------------
-This stays inside the training sizes in DATASET_PLAN.txt.
-
-1. Leave Factcheck-Bench, the AVeriTeC dev and test splits, and a balanced
-   FEVER dev sample out of training. That is the external evaluation set.
-2. Convert AVeriTeC training claims into search-planning, evidence-selection,
-   and claim-evaluation examples. Balance the four AVeriTeC verdicts after
-   mapping conflicting evidence to Insufficient Evidence.
-3. Convert FELM world-knowledge and science segments, plus FActScore
-   biographies, into claim-extraction examples.
-4. Add a balanced FEVER and VitaminC sample only where AVeriTeC is thin:
-   Supported versus Contradicted versus Insufficient Evidence, and cases
-   where changing the evidence flips the label.
-5. Add a small number of ClaimBuster non-claims, ClaimDecomp questions, WiCE
-   partial-support claims, and FreshQA dated claims so the boundary list in
-   DATASET_PLAN.txt is actually present.
-6. Record source dataset, original id, split, and license next to every
+What to convert
+---------------
+1. Convert the full training split of every useful dataset. Keep
+   Factcheck-Bench, every source development and test split, the 2024
+   AVeriTeC test file, FEVER 2.0, and all of FreshQA for evaluation.
+2. AVeriTeC train: all 3,068 claims, for search planning, evidence selection,
+   and claim evaluation. Map conflicting evidence to Insufficient Evidence.
+3. FELM world-knowledge and science segments, FELM writing segments for
+   extraction only, and all FActScore human biographies, for claim extraction.
+   FELM math and reasoning stay out.
+4. FEVER train (145,449), the VitaminC training split, WiCE train, RAGTruth
+   question-answering and news responses, the FEVEROUS training split, and
+   SciFact train (809), for evidence selection and claim evaluation.
+5. From LLM-AggreFact, convert AggreFact, TofuEval, Reveal, ClaimVerify,
+   FactCheck-GPT, ExpertQA, and LFQA. Skip its WiCE and RAGTruth rows so those
+   examples are not loaded twice. Keep its test split for evaluation.
+6. All 23,533 ClaimBuster sentences, and every ClaimDecomp subquestion that
+   follows directly from the claim.
+7. Record source dataset, original id, split, and license next to every
    converted line.
 
 Licenses that bind a public release of the converted JSONL:

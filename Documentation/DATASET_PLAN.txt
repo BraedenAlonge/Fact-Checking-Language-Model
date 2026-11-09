@@ -32,21 +32,32 @@ This format can be adapted to Hugging Face/TRL or another fine-tuning system
 once the team selects its base model and training library.
 
 
-Recommended Dataset Size
-------------------------
+Dataset Scale
+-------------
+Training and evaluation data come from the public datasets listed in
+USEFUL_DATASETS.txt. Convert the full useful portion of each source. There is
+no cap of a few hundred examples per task.
 
-Task                  Training Examples     Evaluation Examples
---------------------  --------------------  -------------------
-Claim extraction      300-500               75-100
-Search planning       200-300               50-75
-Evidence selection    300-500               75-100
-Claim evaluation      400-600               100-150
+An example is useful when it can be converted into one of the four task
+schemas and labeled with the rules in this file. Drop a slice that cannot.
+Math segments, journalistic "half-true" ratings, and automatic verdicts with
+no saved evidence are examples of data that does not fit. Do not drop examples
+only to keep a dataset small.
 
-The claim evaluator should receive the most examples because distinguishing
-"Contradicted" from "Insufficient Evidence" is central to the project.
+Use each source's official training split for training. Keep its development
+and test splits, plus Factcheck-Bench, for evaluation only. The held-out data
+has to be data the adapter has not trained on.
 
-These counts are targets, not requirements. A smaller, carefully reviewed
-dataset is preferable to a larger dataset containing inconsistent labels.
+The 25-example file in Preliminary_Data reviews the schema and the label
+rules. It is not a training target and it is not a limit on how much public
+data to convert.
+
+Claim evaluation still needs clear coverage of Contradicted versus
+Insufficient Evidence. The large verification sets already supply that
+coverage, so keep their training splits in full.
+
+Consistent labels matter more than adding a source that uses a different
+label scheme. Inconsistent labels are not useful data.
 
 
 Cases the Dataset Must Cover
@@ -128,25 +139,27 @@ pipeline. Possible measurements include:
 
 Recommended First Milestone
 ---------------------------
-Create a 25-example, human-reviewed gold set covering all four task types. The
-set should include straightforward examples, negative examples, and difficult
-boundary cases. Review the examples as a team and approve the schemas and label
-rules before scaling up.
-
-Suggested distribution for the first 25 examples:
+The 25-example gold set in Preliminary_Data is the schema-review set. It
+contains straightforward examples, negative examples, and boundary cases:
 
 - 7 claim extraction examples
 - 5 search planning examples
 - 6 evidence selection examples
 - 7 claim evaluation examples
 
+Approve or revise those schemas and label rules, then convert the public
+datasets. The gold set is not the training corpus.
+
 After the gold set is approved:
 
 1. Implement automatic JSON/schema validation.
-2. Expand examples using the approved patterns.
-3. Human-review a sample from every generated batch.
-4. Deduplicate and check label balance.
-5. Freeze the held-out evaluation set.
+2. Convert the full useful training split of each public dataset into the
+   approved schema.
+3. Human-review the label mapping and a sample from each converted dataset.
+   The public sources are too large to review line by line.
+4. Deduplicate across sources and check that every task and every label is
+   present.
+5. Freeze the held-out evaluation splits before training.
 6. Train the baseline model and LoRA adapter.
 7. Compare both models on exactly the same evaluation data.
 

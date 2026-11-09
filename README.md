@@ -37,13 +37,14 @@ Documentation/
   CSC5870 Project Proposal.pdf
   CSC5870_ System Design and Architecture.pdf
   DATASET_PLAN.txt
+  USEFUL_DATASETS.txt
 Preliminary_Data/
   GOLD_SET_SCHEMA.txt
   gold_examples_v1.jsonl
 README.md
 ```
 
-- `Documentation/` contains the broader project proposal, system design, and dataset acquisition plan.
+- `Documentation/` contains the broader project proposal, system design, dataset plan, and the catalog of public datasets to convert.
 - `Preliminary_Data/GOLD_SET_SCHEMA.txt` defines the shared record format, task-specific output schemas, labeling rules, and review checklist.
 - `Preliminary_Data/gold_examples_v1.jsonl` contains the initial 25 examples.
 
@@ -68,9 +69,9 @@ The labels describe agreement with the retrieved evidence or online consensus, n
 
 1. Review and approve the current gold-set schemas and labeling decisions.
 2. Implement automated JSON and schema validation.
-3. Acquire and archive evidence from real, reputable sources with retrieval metadata.
-4. Expand the dataset using the approved patterns, with human review of every acquisition batch.
-5. Check class balance, task coverage, source independence, and duplicates.
-6. Freeze a held-out evaluation set before model training begins.
+3. Convert the useful public datasets catalogued in `Documentation/USEFUL_DATASETS.txt`. Use each source's full training split, and keep archived evidence text with its provenance.
+4. Human-review the label mapping and a sample from each converted dataset. The public sources are too large to review line by line.
+5. Check task coverage, label mapping, source independence, and duplicates across sources.
+6. Freeze each source's development and test split, plus Factcheck-Bench, before model training begins.
 
-The working targets in the dataset plan are 1,200-1,900 training examples and 300-425 held-out evaluation examples across the four tasks. These are guidelines: a smaller, consistently labeled and carefully reviewed dataset is more valuable than a larger noisy one.
+The 25 gold examples are a schema check, not a size target. Training uses the full useful portion of the public datasets. A slice is left out when it cannot be mapped onto the four tasks and the three labels, not in order to keep the collection small.
