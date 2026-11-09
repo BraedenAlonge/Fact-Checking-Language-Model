@@ -121,9 +121,9 @@ Notes
 -----
 LLM-AggreFact was not downloaded because the Hugging Face dataset is gated.
 ClaimBuster was not downloaded because Zenodo returned HTTP 403 and the checked GitHub paths do not host the CSV.
-AVeriTeC's test file has 2215 claims and no verdicts or evidence, so those claims were not converted. Train and dev were converted. One training claim was empty and was skipped.
+AVeriTeC's test file has 2215 claims and no verdicts or evidence, so those claims were not converted. Train and dev were converted.
 ClaimDecomp's public spreadsheet exposed 100 claims. The authors ask to be emailed for the rest, so the remaining annotated claims were not included.
-FEVER evidence sentences missing from the Wikipedia dump: 2258. Those sentences were left out of any evidence set that needed them.
+FEVER evidence sentences missing from the Wikipedia dump: 2258. Those sentences were left out.
 
 Rebuild
 -------

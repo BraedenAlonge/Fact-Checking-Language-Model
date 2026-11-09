@@ -1,5 +1,9 @@
 data/raw/
 data/processed/**/*.jsonl
+data/tinker/
+runs/
 __pycache__/
 *.pyc
 .cache/
+.venv/
+TinkerAPI.txt

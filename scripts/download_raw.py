@@ -26,6 +26,7 @@ URLS = {
     "averitec/train.json": "https://huggingface.co/chenxwh/AVeriTeC/resolve/main/data/train.json",
     "averitec/dev.json": "https://huggingface.co/chenxwh/AVeriTeC/resolve/main/data/dev.json",
     "averitec/test.json": "https://huggingface.co/chenxwh/AVeriTeC/resolve/main/data/test.json",
+    "factscore/data.zip": "https://drive.google.com/uc?export=download&id=155exEdKs7R21gZF4G-x54-XN3qswBcPo",
     "claimbuster/all_sentences.csv": "https://zenodo.org/records/3609356/files/all_sentences.csv?download=1",
     "ragtruth/response.jsonl": "https://raw.githubusercontent.com/ParticleMedia/RAGTruth/main/dataset/response.jsonl",
     "ragtruth/source_info.jsonl": "https://raw.githubusercontent.com/ParticleMedia/RAGTruth/main/dataset/source_info.jsonl",
