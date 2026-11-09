@@ -22,14 +22,15 @@ but internally consistent, and all URLs use the reserved .example top-level
 domain. This avoids presenting invented citations as real sources.
 
 Do not treat this version as a factual web-evidence corpus. After the team
-approves the schemas, task boundaries, and label decisions, convert the useful
-public datasets listed in Documentation/USEFUL_DATASETS.txt. Use each source's
-full training split. These 25 examples are not a training target and they are
-not a cap on how much public data to convert.
+approves the schemas, task boundaries, and label decisions, use the converted
+public data in data/processed. Documentation/DATA_BUILD.txt records how each
+source was mapped onto these schemas. These 25 examples are not a training
+target and they are not a cap on how much public data to convert.
 
-Evidence-selection and claim-evaluation records used for training should carry
-archived text from the source dataset, with a URL or document id, a title, and
-enough provenance to recover the original example.
+Evidence-selection and claim-evaluation records in the converted files carry
+text from the source dataset. A URL is blank when that dataset has no URL.
+Per-excerpt stance is "context" when the source only labels the whole claim.
+Quality is a domain rule when the source has no quality annotation.
 
 
 Common Record Format

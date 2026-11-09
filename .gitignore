@@ -1,0 +1,5 @@
+data/raw/
+data/processed/**/*.jsonl
+__pycache__/
+*.pyc
+.cache/

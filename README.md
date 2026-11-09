@@ -17,18 +17,14 @@ Each JSONL line is a complete chat-style training record. The assistant response
 
 ## Current status
 
-The repository currently includes a 25-example, human-review-oriented gold set:
+Public datasets have been converted into the four tasks. Training and evaluation JSONL files are in `data/processed/`. Counts and the mapping rules are in `Documentation/DATA_BUILD.txt`.
 
-| Task | Examples |
-| --- | ---: |
-| Claim extraction | 7 |
-| Search planning | 5 |
-| Evidence selection | 6 |
-| Claim evaluation | 7 |
+| Split | Claim extraction | Search planning | Evidence selection | Claim evaluation |
+| --- | ---: | ---: | ---: | ---: |
+| Train | 11,800 | 98,941 | 810,221 | 810,221 |
+| Eval | 7,341 | 12,636 | 200,994 | 200,994 |
 
-These examples are intended for **schema and behavior review**. Evidence packets are synthetic but internally consistent, and their URLs use the reserved `.example` domain. The current set must not be treated as a factual web-evidence corpus.
-
-After the schemas, task boundaries, and labeling rules are approved, the evidence-selection and claim-evaluation data should be rebuilt or expanded with archived content from real sources, including retrieval dates and provenance.
+The 25-example gold set remains a schema and behavior review file. Its evidence is synthetic and its URLs use the reserved `.example` domain. It is not part of the training files.
 
 ## Repository contents
 
@@ -38,13 +34,22 @@ Documentation/
   CSC5870_ System Design and Architecture.pdf
   DATASET_PLAN.txt
   USEFUL_DATASETS.txt
+  DATA_BUILD.txt
 Preliminary_Data/
   GOLD_SET_SCHEMA.txt
   gold_examples_v1.jsonl
+data/processed/
+  stats.json
+  train/
+  eval/
+scripts/
+  download_raw.py
+  build_factcheck_data.py
 README.md
 ```
 
-- `Documentation/` contains the broader project proposal, system design, dataset plan, and the catalog of public datasets to convert.
+- `Documentation/` contains the broader project proposal, system design, dataset plan, the catalog of public datasets, and `DATA_BUILD.txt`, which records how those datasets were converted.
+- `data/processed/` contains the converted train and eval JSONL. The JSONL files are large and are gitignored; `stats.json` records the counts. Rebuild them with `python scripts/download_raw.py` and `python scripts/build_factcheck_data.py`.
 - `Preliminary_Data/GOLD_SET_SCHEMA.txt` defines the shared record format, task-specific output schemas, labeling rules, and review checklist.
 - `Preliminary_Data/gold_examples_v1.jsonl` contains the initial 25 examples.
 
@@ -74,4 +79,4 @@ The labels describe agreement with the retrieved evidence or online consensus, n
 5. Check task coverage, label mapping, source independence, and duplicates across sources.
 6. Freeze each source's development and test split, plus Factcheck-Bench, before model training begins.
 
-The 25 gold examples are a schema check, not a size target. Training uses the full useful portion of the public datasets. A slice is left out when it cannot be mapped onto the four tasks and the three labels, not in order to keep the collection small.
+The converted files are the training and evaluation data. `Documentation/DATA_BUILD.txt` lists the counts and the schema adaptations. The 25 gold examples remain a schema check. A slice is left out when it cannot be mapped onto the four tasks and the three labels, not in order to keep the collection small.
