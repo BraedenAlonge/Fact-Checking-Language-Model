@@ -1,0 +1,85 @@
+{
+  "generated": "2026-11-09",
+  "seed": 5870,
+  "sampling_strategy": "equal round-robin across source_dataset within each task",
+  "requested_per_task": {
+    "train": 2500,
+    "eval": 250
+  },
+  "source_sizes": {
+    "train/claim_extraction": 22983,
+    "train/search_planning": 18907,
+    "train/evidence_selection": 810221,
+    "train/claim_evaluation": 810221,
+    "eval/claim_extraction": 7966,
+    "eval/search_planning": 3104,
+    "eval/evidence_selection": 200994,
+    "eval/claim_evaluation": 200994
+  },
+  "outputs": {
+    "train": {
+      "local_path": "data/tinker/pilot_train.jsonl",
+      "sha256": "74689783e2a7af865420f25e77c4968bae8dc826b35790d343471eaede9a0673",
+      "records": 10000,
+      "tokens": 4280978,
+      "by_task": {
+        "claim_evaluation": 2500,
+        "claim_extraction": 2500,
+        "evidence_selection": 2500,
+        "search_planning": 2500
+      },
+      "by_source": {
+        "averitec": 1981,
+        "claimbuster": 942,
+        "claimdecomp": 181,
+        "factscore": 493,
+        "felm": 198,
+        "fever": 820,
+        "feverous": 1159,
+        "ragtruth": 821,
+        "scifact": 821,
+        "vitaminc": 821,
+        "wice": 1763
+      },
+      "claim_evaluation_labels": {
+        "Contradicted": 569,
+        "Insufficient Evidence": 713,
+        "Supported": 1218
+      }
+    },
+    "eval": {
+      "local_path": "data/tinker/pilot_eval.jsonl",
+      "sha256": "934b3fa3c80da72caed1452b81e40b2212e275d5c394763d59fa637fccf88af5",
+      "records": 1000,
+      "tokens": 364251,
+      "by_task": {
+        "claim_evaluation": 250,
+        "claim_extraction": 250,
+        "evidence_selection": 250,
+        "search_planning": 250
+      },
+      "by_source": {
+        "averitec": 167,
+        "claimbuster": 83,
+        "factcheck_bench": 84,
+        "fever": 83,
+        "feverous": 83,
+        "freshqa": 83,
+        "ragtruth": 83,
+        "scifact": 84,
+        "vitaminc": 83,
+        "wice": 167
+      },
+      "claim_evaluation_labels": {
+        "Contradicted": 63,
+        "Insufficient Evidence": 74,
+        "Supported": 113
+      }
+    }
+  },
+  "cross_split_audit": {
+    "exact_message_overlap": 0,
+    "task_dataset_split_source_id_overlap": 0
+  },
+  "note": "The JSONL outputs are reproducible local artifacts and are intentionally gitignored."
+}

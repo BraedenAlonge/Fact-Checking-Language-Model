@@ -15,6 +15,28 @@ Train a lightweight model to support a four-stage fact-checking pipeline:
 
 The intended product is a preliminary consistency check with inspectable sources, not a claim of objective truth. The runtime should use several independent sources when available and refine inadequate searches.
 
+## Executive assessment
+
+The project has moved beyond data acquisition and connectivity testing into a measured research prototype. The complete local data pipeline is reproducible, two full pilot adaptations have run, and a fixed stratified evaluator now compares the base model and multiple checkpoints. The repaired step-200 checkpoint is the current candidate model.
+
+What is working:
+
+- structured outputs are generally learned reliably;
+- the repaired model recognizes most no-claim inputs instead of turning every utterance into a factual claim;
+- search queries retain more discriminating context;
+- evidence source selection and exact copying are strong on the current suite; and
+- periodic checkpoints and task-level evaluation now prevent blindly choosing the final training step.
+
+What is not yet ready:
+
+- claim boundaries remain difficult and automated exact-match F1 is modest;
+- verdict performance regressed relative to the first pilot on the small fixed suite;
+- evidence data is still more benchmark/Wikipedia-like than a real open-web workflow;
+- the evaluation suite is automated and only 96 examples, not a human-reviewed release gate; and
+- the search, retrieval, page-extraction, source-independence, citation, and browser-extension runtime is not implemented in this repository.
+
+The current result is suitable for experiment iteration and manual demos, but not yet for unattended or user-facing factuality decisions. The next highest-value work is error review and a human-scored project-specific evaluation set, followed by targeted data repair. Another training run should wait until those steps identify a concrete failure distribution.
+
 ## Current status
 
 | Area | Status | Notes |
@@ -332,4 +354,4 @@ From the repository root in PowerShell:
 - `.venv/`
 - `runs/`
 
-Tracked rebuild metadata and scripts include `Documentation/DATA_BUILD.txt`, `data/processed/stats.json`, and the scripts under `scripts/`.
+These artifacts remain local because they are multi-gigabyte, reproducible, may carry source-license obligations, or may contain private credentials and service identifiers. They are intentionally not force-added to Git. Tracked rebuild metadata and reproducibility records include `Documentation/DATA_BUILD.txt`, `Documentation/PILOT_MANIFEST.json`, `Documentation/EVALUATION_RESULTS.json`, `data/processed/stats.json`, and the scripts under `scripts/`.

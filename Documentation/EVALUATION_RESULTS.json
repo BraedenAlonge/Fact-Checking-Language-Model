@@ -1,0 +1,126 @@
+{
+  "generated": "2026-11-09",
+  "suite": {
+    "seed": 5870,
+    "records": 96,
+    "records_per_task": 24,
+    "tasks": [
+      "claim_extraction",
+      "search_planning",
+      "evidence_selection",
+      "claim_evaluation"
+    ],
+    "stratification": {
+      "claim_extraction": "source_dataset plus empty/nonempty expected claims",
+      "search_planning": "source_dataset plus numeric/nonnumeric claim",
+      "evidence_selection": "source_dataset plus single/multiple candidate results",
+      "claim_evaluation": "source_dataset plus verdict label"
+    }
+  },
+  "selected_model": {
+    "label": "repaired_step200",
+    "reason": "Best held-out NLL and best repaired no-claim behavior while retaining strong search and evidence metrics.",
+    "sampler_checkpoint": "tinker://7e61d5a7-3f20-593b-a4fa-691ca4cb308e:train:0/sampler_weights/000200",
+    "state_checkpoint": "tinker://7e61d5a7-3f20-593b-a4fa-691ca4cb308e:train:0/weights/000200"
+  },
+  "second_run": {
+    "session": "7e61d5a7-3f20-593b-a4fa-691ca4cb308e",
+    "model": "Qwen/Qwen3.5-4B",
+    "lora_rank": 16,
+    "steps": 625,
+    "training_tokens": 4280978,
+    "evaluation_tokens": 598500,
+    "estimated_cost_usd_before_credits_and_sampling": 3.5962,
+    "heldout_nll": {
+      "0": 1.1259667,
+      "100": 0.2214822,
+      "200": 0.1510615,
+      "300": 0.1590287,
+      "400": 0.1668242,
+      "500": 0.1561744,
+      "600": 0.1595653
+    }
+  },
+  "models": {
+    "base": {
+      "claim_strict_schema": 0.0417,
+      "claim_micro_f1": 0.0,
+      "no_claim_accuracy": 0.3333,
+      "search_strict_schema": 0.0,
+      "query_token_f1": 0.0,
+      "target_number_preservation": 0.6667,
+      "evidence_source_id_f1": 0.7547,
+      "evidence_copy_rate": 0.5938,
+      "evidence_stance_accuracy": 0.1,
+      "verdict_accuracy": 0.7917,
+      "verdict_macro_f1": 0.7955,
+      "verdict_source_id_f1": 0.1667
+    },
+    "first_pilot_final": {
+      "claim_strict_schema": 1.0,
+      "claim_micro_f1": 0.46,
+      "no_claim_accuracy": 0.0,
+      "search_strict_schema": 1.0,
+      "query_token_f1": 0.6158,
+      "target_number_preservation": 0.7917,
+      "evidence_source_id_f1": 0.7595,
+      "evidence_copy_rate": 0.9592,
+      "evidence_stance_accuracy": 0.9333,
+      "verdict_accuracy": 0.875,
+      "verdict_macro_f1": 0.8773,
+      "verdict_source_id_f1": 1.0
+    },
+    "repaired_step200": {
+      "claim_strict_schema": 0.9583,
+      "claim_micro_f1": 0.4156,
+      "no_claim_accuracy": 0.8889,
+      "no_claim_false_positive_rate": 0.0,
+      "search_strict_schema": 1.0,
+      "query_token_f1": 0.6114,
+      "target_number_preservation": 0.8333,
+      "evidence_source_id_f1": 1.0,
+      "evidence_copy_rate": 1.0,
+      "evidence_stance_accuracy": 0.8333,
+      "verdict_accuracy": 0.7917,
+      "verdict_macro_f1": 0.7926,
+      "verdict_source_id_f1": 1.0
+    },
+    "repaired_step500": {
+      "claim_strict_schema": 0.9583,
+      "claim_micro_f1": 0.2532,
+      "no_claim_accuracy": 0.7778,
+      "no_claim_false_positive_rate": 0.1111,
+      "search_strict_schema": 1.0,
+      "query_token_f1": 0.5888,
+      "target_number_preservation": 0.8333,
+      "evidence_source_id_f1": 1.0,
+      "evidence_copy_rate": 1.0,
+      "evidence_stance_accuracy": 0.8,
+      "verdict_accuracy": 0.8333,
+      "verdict_macro_f1": 0.8415,
+      "verdict_source_id_f1": 1.0
+    },
+    "repaired_final": {
+      "claim_strict_schema": 0.9583,
+      "claim_micro_f1": 0.4524,
+      "no_claim_accuracy": 0.6667,
+      "no_claim_false_positive_rate": 0.2222,
+      "search_strict_schema": 1.0,
+      "query_token_f1": 0.5959,
+      "target_number_preservation": 0.8333,
+      "evidence_source_id_f1": 1.0,
+      "evidence_copy_rate": 1.0,
+      "evidence_stance_accuracy": 0.8667,
+      "verdict_accuracy": 0.7917,
+      "verdict_macro_f1": 0.7955,
+      "verdict_source_id_f1": 1.0
+    }
+  },
+  "limitations": [
+    "One example changes a per-task rate by 4.17 percentage points.",
+    "Claim matching is normalized exact text rather than semantic equivalence.",
+    "Search quality uses target overlap and number preservation, not human relevance judgments.",
+    "The suite is benchmark-derived and has not yet been human-reviewed for this project."
+  ],
+  "note": "Full predictions and private run logs remain local under runs/ and are intentionally gitignored."
+}

@@ -35,6 +35,9 @@ Documentation/
   DATASET_PLAN.txt
   USEFUL_DATASETS.txt
   DATA_BUILD.txt
+  PROJECT_PROGRESS.md
+  PILOT_MANIFEST.json
+  EVALUATION_RESULTS.json
 Preliminary_Data/
   GOLD_SET_SCHEMA.txt
   gold_examples_v1.jsonl
