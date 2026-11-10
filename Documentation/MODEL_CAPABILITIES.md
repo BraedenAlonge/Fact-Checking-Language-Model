@@ -14,7 +14,7 @@ This step-200 checkpoint was selected because it has the best held-out NLL and t
 
 ## Scope
 
-The model is a structured, four-stage fact-checking prototype. It is not a standalone web-browsing fact checker. It is intended to operate inside an application that performs search, page retrieval, text extraction, and source management.
+The model is a structured, four-stage fact-checking prototype. It is not itself a web-browsing fact checker. This repository now supplies a command-line application that performs search, page retrieval, text extraction, source management, deterministic validation, and report generation around the model.
 
 | Capability | Current behavior |
 | --- | --- |
@@ -134,11 +134,11 @@ Input text
    -> model evaluates the claim and returns source IDs
 ```
 
-With a search and retrieval wrapper, this model is suitable for a controlled project demonstration of the complete concept. Its structured outputs can be connected directly to application code.
+The search and retrieval wrapper is now implemented in `background_checkers/` with a guarded entry point at `scripts/run_prototype.py`. It is suitable for a controlled project demonstration of the complete concept and emits a cited JSON audit report. It is not yet a hardened service, local web UI, or browser extension. Setup and usage are documented in `PROTOTYPE_RUNTIME.md`.
 
 ## What the model cannot do by itself
 
-The model does not currently:
+The model itself does not:
 
 - browse or search the internet;
 - retrieve, parse, or archive webpages;
@@ -150,6 +150,8 @@ The model does not currently:
 - provide trustworthy verdicts without supplied evidence;
 - enforce runtime schemas outside its generated text; or
 - implement the browser extension described in the project proposal.
+
+The surrounding prototype now supplies the first-pass search, retrieval, validation, citation, and failure-handling layers. Their limitations—including lightweight HTML extraction, incomplete prompt-injection defenses, and approximate source-independence checks—are documented in `PROTOTYPE_RUNTIME.md`.
 
 The model's internal parametric knowledge must not be treated as evidence. Search, retrieval, source normalization, deterministic validation, citations, and failure handling belong in the surrounding application.
 

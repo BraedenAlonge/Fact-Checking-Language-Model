@@ -1,8 +1,8 @@
-# Background Checkers - Data Acquisition
+# Background Checkers
 
-This repository contains the **data-acquisition and dataset-curation work** for Background Checkers, a CSC 5870 project exploring how a lightweight language model can help users review factual claims in LLM-generated or other source text.
+This repository contains the data, model experiments, evaluation harness, and end-to-end command-line prototype for Background Checkers, a CSC 5870 project exploring how a lightweight language model can help users review factual claims in LLM-generated or other source text.
 
-It is not the complete fact-checking application. The broader project is intended to extract checkable claims, search the web for relevant sources, select useful evidence, and compare each claim with that evidence. This repository focuses on acquiring and preparing the high-quality training and evaluation data needed to support those behaviors.
+The prototype now extracts checkable claims, searches the web, retrieves source pages, selects evidence, evaluates each claim, and writes cited audit reports. It is a controlled CLI prototype rather than the proposed browser extension or a production factuality service.
 
 ## Dataset scope
 
@@ -37,6 +37,7 @@ Documentation/
   DATA_BUILD.txt
   PROJECT_PROGRESS.md
   MODEL_CAPABILITIES.md
+  PROTOTYPE_RUNTIME.md
   PILOT_MANIFEST.json
   EVALUATION_RESULTS.json
 Preliminary_Data/
@@ -54,6 +55,16 @@ scripts/
   estimate_tinker_tokens.py
   train_tinker_sft.py
   evaluate_tinker_checkpoint.py
+  run_prototype.py
+background_checkers/
+  schemas.py
+  model.py
+  search.py
+  retrieval.py
+  pipeline.py
+tests/
+  test_prototype.py
+requirements-prototype.txt
 README.md
 ```
 
@@ -61,6 +72,7 @@ README.md
 - `data/processed/` contains the converted train and eval JSONL. The JSONL files are large and are gitignored; `stats.json` records the counts. Rebuild them through the project environment with `.\.venv\Scripts\python.exe scripts\download_raw.py` and `.\.venv\Scripts\python.exe scripts\build_factcheck_data.py`.
 - `Documentation/PROJECT_PROGRESS.md` is the live record of acquisition, audits, Tinker runs, decisions, and current action items.
 - `Documentation/MODEL_CAPABILITIES.md` describes what the selected prototype checkpoint can and cannot do, with measured task-level results and example schemas.
+- `Documentation/PROTOTYPE_RUNTIME.md` explains the complete CLI pipeline, installation, search-provider choices, safety rules, usage, and current limitations.
 - `Preliminary_Data/GOLD_SET_SCHEMA.txt` defines the shared record format, task-specific output schemas, labeling rules, and review checklist.
 - `Preliminary_Data/gold_examples_v1.jsonl` contains the initial 25 examples.
 

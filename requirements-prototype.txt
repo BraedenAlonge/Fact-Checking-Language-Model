@@ -1,0 +1,6 @@
+# Install after the existing project-local Tinker environment is created.
+# Tinker versions match the environment used for the recorded pilot runs.
+tinker==0.39.0
+tinker-cookbook==0.5.9
+httpx>=0.27,<1
+ddgs==9.16.1

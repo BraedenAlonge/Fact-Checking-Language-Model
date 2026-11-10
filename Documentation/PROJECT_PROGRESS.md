@@ -33,7 +33,7 @@ What is not yet ready:
 - verdict performance regressed relative to the first pilot on the small fixed suite;
 - evidence data is still more benchmark/Wikipedia-like than a real open-web workflow;
 - the evaluation suite is automated and only 96 examples, not a human-reviewed release gate; and
-- the search, retrieval, page-extraction, source-independence, citation, and browser-extension runtime is not implemented in this repository.
+- the new search/retrieval runtime is a guarded CLI prototype, not a hardened service, local web UI, or browser extension.
 
 The current result is suitable for experiment iteration and manual demos, but not yet for unattended or user-facing factuality decisions. The next highest-value work is error review and a human-scored project-specific evaluation set, followed by targeted data repair. Another training run should wait until those steps identify a concrete failure distribution.
 
@@ -51,6 +51,7 @@ The selected checkpoint's supported behaviors, measured task performance, exampl
 | Preliminary training | Complete | Original and repaired 625-step pilots completed for about $3.33 and $3.60 before credits. |
 | Post-run data repair | Complete, first pass | Claim negatives, source balancing, query filtering, and prompt-leak fixes applied. |
 | Evaluation harness | Automated preliminary coverage complete | Fixed 96-example stratified suite compares schemas and task metrics; human review remains. |
+| End-to-end runtime | Working CLI prototype | Live search, bounded retrieval, evidence validation, verdicts, citations, and JSON audit reports are connected. |
 
 ## Work completed
 
@@ -90,6 +91,17 @@ The selected checkpoint's supported behaviors, measured task performance, exampl
 - Installed and import-tested Tinker SDK/CLI 0.39.0 and Tinker Cookbook 0.5.9.
 - Verified credentials, organization access, and that `Qwen/Qwen3.5-4B` is trainable and sampleable.
 - Never displayed or read the API key. `TinkerAPI.txt` is gitignored but should be deleted if it contains a redundant plaintext key.
+
+### End-to-end prototype runtime
+
+- Added exact runtime validators for all four task schemas plus one model correction retry.
+- Connected the selected step-200 Tinker sampler to DDGS and optional Brave web search.
+- Added bounded concurrent retrieval, public-address validation, redirect checks, lightweight HTML extraction, relevant excerpts, and snippet fallbacks.
+- Added URL deduplication, one-evidence-item-per-domain enforcement, a three-source default cap, exact restoration of retrieved source fields, and rejection of invented citations.
+- Added bounded query refinement, a raw-claim search fallback, claim-level error isolation, and deterministic `Insufficient Evidence` behavior when evidence is unusable.
+- Added a guarded CLI and complete JSON audit report under ignored `prototype_outputs/`.
+- Added offline orchestration tests and completed a live Eiffel Tower smoke test with fetched Wikipedia and Britannica evidence.
+- Documented installation, authentication, operation, integrity rules, and limitations in `Documentation/PROTOTYPE_RUNTIME.md`.
 
 ### Initial pilot and smoke test
 
@@ -312,12 +324,16 @@ Step 200 is selected as the best balanced repaired checkpoint. It has the best h
 
 ### Priority 1 - runtime application
 
-- [ ] Define and enforce exact runtime JSON schemas.
-- [ ] Select a search provider and normalized result format.
-- [ ] Implement page retrieval, content extraction, and inaccessible-page handling.
-- [ ] Implement deterministic source-domain and independence rules outside the model.
-- [ ] Implement query-refinement limits and failure handling.
-- [ ] Build the end-to-end text-to-cited-results pipeline before browser-extension work.
+- [x] Define and enforce exact runtime JSON schemas.
+- [x] Select DDGS and optional Brave providers with a normalized result format.
+- [x] Implement bounded page retrieval, lightweight content extraction, and inaccessible-page fallback.
+- [x] Implement deterministic source-domain, source-copy, and citation rules outside the model.
+- [x] Implement query-refinement limits and failure handling.
+- [x] Build and live-smoke-test the end-to-end text-to-cited-results pipeline.
+- [ ] Add explicit retrieved-page prompt-injection defenses and a robots/publisher policy.
+- [ ] Add robust PDF and JavaScript-rendered page extraction.
+- [ ] Wrap the pipeline in a small local API/web UI for group demonstrations.
+- [ ] Build the browser extension after the local application workflow is stable.
 
 ## Reproduction commands
 
@@ -346,6 +362,14 @@ From the repository root in PowerShell:
 # Plan a 96-example-per-model stratified evaluation without API calls
 .\.venv\Scripts\python.exe scripts\evaluate_tinker_checkpoint.py `
   --include-base --output-dir runs\evaluation-plan
+
+# Print the end-to-end runtime plan without paid or live calls
+.\.venv\Scripts\python.exe scripts\run_prototype.py `
+  --text "The Eiffel Tower was completed in 1889."
+
+# Explicitly execute the end-to-end prototype
+.\.venv\Scripts\python.exe scripts\run_prototype.py `
+  --execute --text "The Eiffel Tower was completed in 1889."
 ```
 
 ## Generated and ignored artifacts
@@ -355,5 +379,6 @@ From the repository root in PowerShell:
 - `data/tinker/`
 - `.venv/`
 - `runs/`
+- `prototype_outputs/`
 
 These artifacts remain local because they are multi-gigabyte, reproducible, may carry source-license obligations, or may contain private credentials and service identifiers. They are intentionally not force-added to Git. Tracked rebuild metadata and reproducibility records include `Documentation/DATA_BUILD.txt`, `Documentation/PILOT_MANIFEST.json`, `Documentation/EVALUATION_RESULTS.json`, `data/processed/stats.json`, and the scripts under `scripts/`.
