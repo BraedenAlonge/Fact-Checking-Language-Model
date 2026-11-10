@@ -36,6 +36,7 @@ Documentation/
   USEFUL_DATASETS.txt
   DATA_BUILD.txt
   PROJECT_PROGRESS.md
+  MODEL_CAPABILITIES.md
   PILOT_MANIFEST.json
   EVALUATION_RESULTS.json
 Preliminary_Data/
@@ -59,6 +60,7 @@ README.md
 - `Documentation/` contains the broader project proposal, system design, dataset plan, the catalog of public datasets, and `DATA_BUILD.txt`, which records how those datasets were converted.
 - `data/processed/` contains the converted train and eval JSONL. The JSONL files are large and are gitignored; `stats.json` records the counts. Rebuild them through the project environment with `.\.venv\Scripts\python.exe scripts\download_raw.py` and `.\.venv\Scripts\python.exe scripts\build_factcheck_data.py`.
 - `Documentation/PROJECT_PROGRESS.md` is the live record of acquisition, audits, Tinker runs, decisions, and current action items.
+- `Documentation/MODEL_CAPABILITIES.md` describes what the selected prototype checkpoint can and cannot do, with measured task-level results and example schemas.
 - `Preliminary_Data/GOLD_SET_SCHEMA.txt` defines the shared record format, task-specific output schemas, labeling rules, and review checklist.
 - `Preliminary_Data/gold_examples_v1.jsonl` contains the initial 25 examples.
 

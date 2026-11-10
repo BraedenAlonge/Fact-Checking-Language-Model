@@ -37,6 +37,8 @@ What is not yet ready:
 
 The current result is suitable for experiment iteration and manual demos, but not yet for unattended or user-facing factuality decisions. The next highest-value work is error review and a human-scored project-specific evaluation set, followed by targeted data repair. Another training run should wait until those steps identify a concrete failure distribution.
 
+The selected checkpoint's supported behaviors, measured task performance, example schemas, intended application workflow, and explicit non-capabilities are summarized in `Documentation/MODEL_CAPABILITIES.md`.
+
 ## Current status
 
 | Area | Status | Notes |
