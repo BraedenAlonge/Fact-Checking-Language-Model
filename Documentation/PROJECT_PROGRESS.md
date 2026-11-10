@@ -1,6 +1,6 @@
 # Background Checkers - Project Progress and TODO
 
-Last updated: 2026-11-09
+Last updated: 2026-11-10
 
 This is the live project record for the Background Checkers data and training work. Update it whenever a dataset, schema, training configuration, evaluation result, or project decision changes.
 
@@ -291,6 +291,20 @@ Step 200 is selected as the best balanced repaired checkpoint. It has the best h
 
 ## Current action items
 
+### Prototype evaluation completion gate
+
+The end-to-end CLI pipeline is functionally complete. The last major research milestone before calling it a complete, defensibly evaluated prototype is a frozen, human-reviewed, project-specific evaluation set. This is a prototype completion gate, not a shipping or production-readiness gate.
+
+- [ ] Define human-review rubrics for claim boundaries, search relevance, evidence fidelity/quality, and verdict correctness.
+- [ ] Assemble a representative review set with at least 50 examples per task.
+- [ ] Pre-populate the set with the current model's predictions, selected evidence, citations, and automated scores.
+- [ ] Human-review and adjudicate ambiguous or incorrect labels, recording the reasons for changes.
+- [ ] Freeze the corrected examples and rubric as the project-specific evaluation set.
+- [ ] Run the selected step-200 checkpoint against the frozen set.
+- [ ] Publish task-level metrics, common failure categories, and representative live end-to-end examples.
+
+Once these items are complete, the project can reasonably claim that the full prototype works and has a defensible measurement of its performance. A local web UI, browser extension, robust PDF/JavaScript extraction, stronger prompt-injection defenses, and production source policies remain useful follow-up work but do not block prototype evaluation.
+
 ### Priority 0 - evaluation before another paid run
 
 - [x] Implement exact schema validation, including field names and allowed enums.
@@ -299,8 +313,9 @@ Step 200 is selected as the best balanced repaired checkpoint. It has the best h
 - [x] Measure query-target overlap and date/number preservation.
 - [x] Measure evidence-selection source F1 and exact excerpt-copy compliance.
 - [x] Measure verdict accuracy, macro F1, and label confusion.
-- [ ] Define human search-relevance and claim-boundary rubrics.
-- [ ] Human-review at least 50 examples per task.
+- [ ] Complete the human rubrics and frozen review set defined in the prototype evaluation completion gate above.
+- [ ] Human-review at least 50 examples per task and record adjudication reasons.
+- [ ] Run the current checkpoint on the frozen set and publish the final prototype evaluation report.
 - [x] Select the best periodic checkpoint by held-out metrics and task scores.
 
 ### Priority 0 - remaining data improvements
