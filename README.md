@@ -4,6 +4,49 @@ This repository contains the data, model experiments, evaluation harness, and en
 
 The prototype now extracts checkable claims, searches the web, retrieves source pages, selects evidence, evaluates each claim, and writes cited audit reports. It is a controlled CLI prototype rather than the proposed browser extension or a production factuality service.
 
+## Quick start: run the model
+
+Run commands from the repository root in PowerShell. The supported environment is Python 3.11.
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-prototype.txt
+.\.venv\Scripts\tinker.exe auth login
+.\.venv\Scripts\tinker.exe auth status
+```
+
+First run the offline tests:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+The safest way to use the selected model is through the complete pipeline. Without `--execute`, the command only prints its plan and makes no Tinker or live-search calls:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_prototype.py `
+  --text "The Eiffel Tower was completed in 1889."
+```
+
+After reviewing the plan, explicitly allow the paid Tinker and live-search calls:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_prototype.py `
+  --execute `
+  --text "The Eiffel Tower was completed in 1889."
+```
+
+For a longer input, use `--file` and optionally choose the output path:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_prototype.py `
+  --execute `
+  --file .\input.txt `
+  --output .\prototype_outputs\input-report.json
+```
+
+The default DDGS search provider needs no key. To use Brave Search instead, set `BRAVE_SEARCH_API_KEY` in the current shell and add `--provider brave`. Prototype reports are written under `prototype_outputs/` by default. See `Documentation/PROTOTYPE_RUNTIME.md` for every runtime option, safety rule, and limitation.
+
 ## Dataset scope
 
 The planned dataset is a multi-task JSONL collection covering four stages of the proposed fact-checking pipeline:
@@ -26,7 +69,23 @@ Public datasets have been converted into the four tasks. Training and evaluation
 
 The 25-example gold set remains a schema and behavior review file. Its evidence is synthetic and its URLs use the reserved `.example` domain. It is not part of the training files.
 
-## Repository contents
+## How to navigate the repository
+
+Use this table as the starting point:
+
+| If you want to... | Start here |
+| --- | --- |
+| Run the complete fact-checking demo | `scripts/run_prototype.py` and `Documentation/PROTOTYPE_RUNTIME.md` |
+| Understand what the selected checkpoint can do | `Documentation/MODEL_CAPABILITIES.md` |
+| See completed work and the current TODO list | `Documentation/PROJECT_PROGRESS.md` |
+| Inspect the runtime implementation | `background_checkers/pipeline.py`, then `model.py`, `search.py`, and `retrieval.py` |
+| Understand the JSON task contracts | `Preliminary_Data/GOLD_SET_SCHEMA.txt` and `background_checkers/schemas.py` |
+| Rebuild or inspect the datasets | `Documentation/DATA_BUILD.txt`, `scripts/download_raw.py`, and `scripts/build_factcheck_data.py` |
+| Prepare or audit a Tinker training pilot | `scripts/prepare_tinker_data.py` and `scripts/audit_tinker_pilot.py` |
+| Train or evaluate a checkpoint | `scripts/train_tinker_sft.py` and `scripts/evaluate_tinker_checkpoint.py` |
+| Run offline regression tests | `tests/test_prototype.py` |
+
+The main directory structure is:
 
 ```text
 Documentation/
@@ -55,6 +114,7 @@ scripts/
   estimate_tinker_tokens.py
   train_tinker_sft.py
   evaluate_tinker_checkpoint.py
+  sample_tinker_checkpoint.py
   run_prototype.py
 background_checkers/
   schemas.py
@@ -75,6 +135,62 @@ README.md
 - `Documentation/PROTOTYPE_RUNTIME.md` explains the complete CLI pipeline, installation, search-provider choices, safety rules, usage, and current limitations.
 - `Preliminary_Data/GOLD_SET_SCHEMA.txt` defines the shared record format, task-specific output schemas, labeling rules, and review checklist.
 - `Preliminary_Data/gold_examples_v1.jsonl` contains the initial 25 examples.
+
+## Script guide and common workflows
+
+Every script should be run from the repository root with `.\.venv\Scripts\python.exe`. Use `--help` to inspect all available arguments.
+
+| Script | Purpose | External work or cost |
+| --- | --- | --- |
+| `run_prototype.py` | Run text through extraction, search, retrieval, evidence selection, evaluation, and citation reporting. | Plan-only by default; `--execute` enables Tinker and live search. |
+| `download_raw.py` | Download the public source datasets used by the converters. | Network and substantial disk use. |
+| `build_factcheck_data.py` | Convert local raw sources into the four processed task datasets. | Local CPU, memory, and disk use. |
+| `prepare_tinker_data.py` | Build deterministic, source-balanced pilot train/eval JSONL files. | Local only. |
+| `audit_tinker_pilot.py` | Check pilot balance, overlap, copying, prompt leakage, and other quality signals. | Local only. |
+| `estimate_tinker_tokens.py` | Tokenize prepared JSONL and estimate training cost. | Local only; the estimate is not a billing quote. |
+| `train_tinker_sft.py` | Plan or launch a Tinker LoRA training run. | Plan-only by default; `--execute` starts a paid run. |
+| `evaluate_tinker_checkpoint.py` | Build the fixed evaluation suite, rescore saved predictions, or sample models. | Plan/rescoring is local; `--execute` starts paid sampling. |
+| `sample_tinker_checkpoint.py` | Compare base and tuned outputs on four examples. | **No execution guard:** invoking it immediately makes Tinker sampling calls. |
+
+### Rebuild and audit training data
+
+The raw and generated JSONL data is intentionally gitignored. Reproduce it with:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\download_raw.py
+.\.venv\Scripts\python.exe scripts\build_factcheck_data.py
+.\.venv\Scripts\python.exe scripts\prepare_tinker_data.py
+.\.venv\Scripts\python.exe scripts\audit_tinker_pilot.py
+```
+
+`download_raw.py` downloads roughly two gigabytes, and conversion can use meaningful CPU, memory, and disk. Do not start those steps casually on a resource-constrained machine.
+
+### Estimate, train, and evaluate
+
+Estimate tokens and cost before training:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\estimate_tinker_tokens.py `
+  data\tinker\pilot_train.jsonl data\tinker\pilot_eval.jsonl
+```
+
+Print a training plan without creating a session:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\train_tinker_sft.py `
+  --max-steps 625 --eval-every 100 --save-every 100
+```
+
+Print the fixed-suite evaluation plan without sampling:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate_tinker_checkpoint.py `
+  --include-base `
+  --checkpoint "tinker://your-checkpoint" `
+  --output-dir runs\evaluation-plan
+```
+
+Only add `--execute` after reviewing the printed plan, confirming the checkpoint and data paths, and deciding that the expected Tinker cost is acceptable. Training/evaluation outputs go under the ignored `runs/` directory.
 
 ## Data-quality principles
 
