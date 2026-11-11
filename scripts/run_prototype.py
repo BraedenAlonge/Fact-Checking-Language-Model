@@ -83,6 +83,12 @@ async def execute(args, text: str, output_path: Path) -> None:
 
 
 def main() -> None:
+    # Windows PowerShell may expose a legacy console encoding. Keep a successful
+    # run from failing only because a source excerpt contains IPA or other
+    # Unicode characters that the console cannot represent. The JSON report is
+    # always written as UTF-8 and preserves the original characters.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
     parser = argparse.ArgumentParser(
         description="Run claim extraction, search, retrieval, evidence selection, and evaluation."
     )
