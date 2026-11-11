@@ -103,6 +103,15 @@ The selected checkpoint's supported behaviors, measured task performance, exampl
 - Added offline orchestration tests and completed a live Eiffel Tower smoke test with fetched Wikipedia and Britannica evidence.
 - Documented installation, authentication, operation, integrity rules, and limitations in `Documentation/PROTOTYPE_RUNTIME.md`.
 
+Multi-claim live baseline on 2026-11-10:
+
+- Input contained two true Eiffel Tower statements and one deliberately false height statement; claim extraction split it into four claims.
+- All four claims completed in one search attempt each, with 20 total retrieved candidates, six selected evidence items, no refinements, and no pipeline errors.
+- Verdicts were three `Supported` and one `Contradicted`; the false 500-metre claim was correctly contradicted by evidence reporting approximately 324-330 metres.
+- The complete local pipeline report is `prototype_outputs/multi-claim-example-20261110.json` (30,086 bytes). It is intentionally gitignored because reports can contain submitted text and retrieved excerpts.
+- The run exposed three review targets: fabricated extraction context, a loose personal-versus-company design attribution, and treating Wikipedia plus Simple English Wikipedia as independent because their domains differ.
+- Windows console rendering failed on an IPA character after the UTF-8 JSON report had been saved. Commit `0b098c6` makes subsequent console summaries replace unsupported display characters instead of terminating.
+
 ### Initial pilot and smoke test
 
 - Created deterministic 10,000-row train and 1,000-row eval pilots, balanced across the four tasks.
@@ -302,6 +311,9 @@ The end-to-end CLI pipeline is functionally complete. The last major research mi
 - [ ] Freeze the corrected examples and rubric as the project-specific evaluation set.
 - [ ] Run the selected step-200 checkpoint against the frozen set.
 - [ ] Publish task-level metrics, common failure categories, and representative live end-to-end examples.
+- [ ] Add the multi-claim Eiffel Tower run to the human review queue and adjudicate its fabricated claim context.
+- [ ] Decide whether “designed by Gustave Eiffel” is supported by evidence saying his company designed the tower, or should be partial/insufficient evidence.
+- [ ] Define an editorial-independence rule for related domains such as Wikipedia and Simple English Wikipedia.
 
 Once these items are complete, the project can reasonably claim that the full prototype works and has a defensible measurement of its performance. A local web UI, browser extension, robust PDF/JavaScript extraction, stronger prompt-injection defenses, and production source policies remain useful follow-up work but do not block prototype evaluation.
 
